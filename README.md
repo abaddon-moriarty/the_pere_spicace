@@ -171,20 +171,21 @@ docker-compose -f docker/docker-compose.yml up
 ## Testing
 
 ```bash
+# Install test dependencies
+pip install -e ".[dev]"
+
 # Run all tests
 pytest
+
+# Run specific test modules
+pytest tests/unit/test_main.py -v
+pytest tests/unit/mcp/ -v
 
 # Run with coverage
 pytest --cov=src --cov-report=html
 
-# Run specific test categories
-pytest tests/unit/ -v
-pytest tests/integration/ -v
-
-# Lint and format
-ruff check .
-ruff format .
-mypy src/
+# Run the test runner script
+python scripts/run_tests.py --type unit --coverage --verbose
 ```
 
 ## Development

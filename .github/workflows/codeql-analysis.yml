@@ -20,32 +20,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python', 'docker' ]
+        language: [ 'python' ]
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         queries: security-and-quality
     
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      uses: github/codeql-action/autobuild@v4
     
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
     
-    - name: Upload results to GitHub Security
-      if: always()
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: ../codeql-results.sarif
-
   dependency-review:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'

@@ -1,0 +1,51 @@
+[project]
+name = "the_pere_spicace"
+version = "0.1.0"
+description = "Convert YouTube videos to Obsidian notes with quizzes"
+authors = [{name = "abaddon-moriarty", email = "munaund@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "mcp>=1.21.0",           # MCP client/server SDK (for ClientSession, StdioServerParameters, stdio_client)
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "mypy>=1.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.10.0",  # For better mocking
+    "pre-commit>=3.0.0",
+    "types-requests>=2.31.0",  # Type stubs for requests
+]
+docker = [
+    "docker>=6.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--strict-markers",
+    "--asyncio-mode=auto",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html"
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__pycache__/*", "*/test_*.py"]

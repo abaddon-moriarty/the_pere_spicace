@@ -1,0 +1,51 @@
+line-length = 79
+target-version = "py313"
+
+
+select = [
+    "E",  # Pycodestyle errors
+    "F",  # Pyflakes
+    "W",  # Pycodestyle warnings
+    "N",  # Pep8-naming
+    "UP", # Pyupgrade
+    "YTT", # flake8-2020
+    "S",  # flake8-bandit
+    "A",  # flake8-builtins
+    "COM", # flake8-commas
+    "C4", # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "T10", # flake8-debugger
+    "EM",  # flake8-errmsg
+    "EXE", # flake8-executable
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "G",  # flake8-logging-format
+    "INP", # flake8-no-pep420
+    "PIE", # flake8-pie
+    "T20", # flake8-print
+    "PYI", # flake8-pyi
+    "RET", # flake8-return
+    "SLF", # flake8-self
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "FBT", # flake8-boolean-trap
+    "RUF", # Ruff-specific rules
+    "ARG", # flake8-unused-arguments
+    "B",   # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "FURB", # flake8-refactoring
+    "LOG", # flake8-logging
+    "PTH", # flake8-use-pathlib
+    "TRY", # tryceratops
+    "NPY", # numpydoc
+    "TCH", # flake8-type-checking
+    "INT", # flake8-gettext
+    "ERA", # eradicate
+    "PD",  # pandas-vet
+]
+
+
+[lint.isort]
+order-by-type = false
+length-sort = true
+lines-between-types = 2
