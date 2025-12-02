@@ -320,4 +320,5 @@ class TestGetTranscriptionYoutube:
             result = await get_transcription_youtube(video_url)
 
         # FIXED: Should return empty string, not "Not JSON at all"
+
         assert result == ""
