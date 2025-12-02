@@ -6,7 +6,7 @@ authors = [{name = "abaddon-moriarty", email = "munaund@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "mcp>=1.21.0",           # MCP client/server SDK (for ClientSession, StdioServerParameters, stdio_client)
+    "mcp>=1.0.0",           # MCP client/server SDK (for ClientSession, StdioServerParameters, stdio_client)
 ]
 
 [project.optional-dependencies]
