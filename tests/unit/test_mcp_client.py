@@ -59,7 +59,6 @@ class CallToolResult:
 try:
     from src.transcription_client.youtube_transcript_client import (
         display_tools,
-        server_params,
         get_transcription_youtube,
     )
 except ImportError:
