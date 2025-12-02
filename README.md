@@ -2,9 +2,9 @@
 
 > Transform YouTube videos into Obsidian notes with interactive quizzes using local LLMs
 
-[![Tests](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/python-tests.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/python-tests.yml)
-[![Docker Build](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/docker-build.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/docker-build.yml)
-[![CodeQL](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/codeql-analysis.yml)
+[![Tests](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/python-tests.yml)
+[![Docker Build](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/docker-build.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/docker-build.yml)
+[![CodeQL](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/codeql-analysis.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -257,7 +257,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 ```bash
 # Fork and clone
-git clone https://github.com/yourusername/youtube-learning-pipeline.git
+git clone https://github.com/abaddon-moriarty/the_pere_spicace.git
 
 # Set up upstream remote
 git remote add upstream https://github.com/originalowner/youtube-learning-pipeline.git
