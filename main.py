@@ -18,7 +18,7 @@ def initialise_database():
     query = "SELECT sqlite_version();"
     cursor.execute(query)
     result = cursor.fetchall()
-    print(f"SQLite Version is {result}")
+    logger.info(f"SQLite Version is {result}")
 
     cursor.execute("""
         SELECT count(name) FROM sqlite_master
@@ -47,7 +47,7 @@ def initialise_database():
 def validate_youtube_url(args):
     try:
         youtube_url = args[1]
-        print(f"The url is: {youtube_url}")
+        logger.info(f"The url is: {youtube_url}")
     except IndexError:
         youtube_url = input("Please provide a youtube url: \n")
 
@@ -55,10 +55,10 @@ def validate_youtube_url(args):
     while not any(
         domain in youtube_url for domain in ["youtube.com", "youtu.be"]
     ):
-        print("This is not a youtube url.")
+        logger.warning("This is not a youtube url.")
         youtube_url = input("Please provide a valid youtube url: \n")
 
-    print("Youtube url recognised")
+    logger.info("Youtube url recognised")
     return youtube_url
 
 
@@ -72,8 +72,8 @@ def check_retrieved_transcriptions(url):
         ).fetchall()
         if result:
             return result
-    except Exception as e:
-        print(e)
+    except Exception:
+        logger.exception(Exception)
         return None
     finally:
         sqlite_connection.close()
@@ -86,17 +86,17 @@ async def async_main(args):
     if check_retrieved_transcriptions(youtube_url):
         logger.info("Video already transcribed, pulling the transcription.")
         return transcript
-    print("Retrieving the transcription...")
+    logger.info("Retrieving the transcription...")
     return await get_transcription_youtube(youtube_url)
 
 
 def main(args):
     initialise_database()
 
-    print("Starting the Youtube learning pipeline")
+    logger.info("Starting the Youtube learning pipeline")
     video_data = asyncio.run(async_main(args))
 
-    print(f"Got transcript: {video_data}")
+    logger.info(f"Got transcript: {video_data}")
 
 
 if __name__ == "__main__":
