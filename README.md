@@ -171,21 +171,21 @@ docker-compose -f docker/docker-compose.yml up
 ## Testing
 
 ```bash
-# Install test dependencies
-pip install -e ".[dev]"
+# Quick test run
+python scripts/run_tests.py
 
-# Run all tests
-pytest
+# Full CI simulation (lint + type-check + coverage)
+python scripts/run_tests.py --ci
 
-# Run specific test modules
-pytest tests/unit/test_main.py -v
-pytest tests/unit/mcp/ -v
+# Or via make
+make ci-local
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Specific test suites
+python scripts/run_tests.py --type unit --coverage
+python scripts/run_tests.py --type integration -v
 
-# Run the test runner script
-python scripts/run_tests.py --type unit --coverage --verbose
+# With linting and type checking
+python scripts/run_tests.py --lint --type-check --coverage -v
 ```
 
 ## Development
