@@ -1,12 +1,12 @@
 import json
-import time
 import asyncio
 import logging
 import secrets
-import sqlite3
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+from database.sqlite_memory import save_transcription_db
 
 logger = logging.getLogger(__name__)
 
@@ -16,21 +16,6 @@ server_params = StdioServerParameters(
     args=["run", "-i", "--rm", "mcp/youtube-transcript:latest"],
     env=None,
 )
-
-
-def save_transcription_db(transcription, title, url):
-    sqlite_connection = sqlite3.connect("youtube_transcription_db.db")
-    cursor = sqlite_connection.cursor()
-    cursor.execute(
-        """INSERT INTO TRANSCRIPTIONS
-                   (url, transcript, title, timestamp)
-                   VALUES (?, ?, ?, ?);
-                   """,
-        (url, transcription, title, time.time()),
-    )
-    sqlite_connection.commit()
-    sqlite_connection.close()
-    return
 
 
 async def display_tools(session: ClientSession):
