@@ -31,7 +31,6 @@ jobs:
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Extract metadata
       id: meta
@@ -43,7 +42,7 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
+          type=sha
     
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -57,20 +56,22 @@ jobs:
         cache-to: type=gha,mode=max
     
     - name: Test built image
+  if: github.event_name != 'pull_request'
       run: |
-        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+    docker run --rm ${{ fromJSON(steps.meta.outputs.json).tags[0] }} \
           python -c "print('Image test successful')"
     
     - name: Scan image with Trivy
-      if: always()
+  if: github.event_name != 'pull_request'
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+    image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
         format: 'sarif'
         output: 'trivy-results.sarif'
     
     - name: Upload Trivy scan results
-      if: always()
+  if: github.event_name != 'pull_request'
       uses: github/codeql-action/upload-sarif@v4
       with:
-        sarif_file: 'trivy-results.sarif'  # Fixed path - no ../ prefix
+    sarif_file: 'trivy-results.sarif'
+
