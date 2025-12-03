@@ -33,7 +33,7 @@ MANIFEST
 *.spec
 
 # Personal Notes
-notes.md
+*notes.md
 
 # Installer logs
 pip-log.txt

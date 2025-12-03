@@ -44,6 +44,9 @@ select = [
     "PD",  # pandas-vet
 ]
 
+ignore = [
+    "G004",
+]
 
 [lint.isort]
 order-by-type = false
