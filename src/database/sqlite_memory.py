@@ -25,11 +25,12 @@ def initialise_database():
         logger.warning("Table TRANSCRIPTIONS not found, creating...")
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS TRANSCRIPTIONS(
-            video_id TEXT PRIMARY KEY AUTOINCREMENT,
+            video_id INTEGER PRIMARY KEY AUTOINCREMENT,
             url VARCHAR(2048),
             transcript TEXT,
             title VARCHAR(512),
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""",
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
         )
         sqlite_connection.commit()
         logger.warning("TRANSCRIPTIONS table created.")
@@ -40,14 +41,14 @@ def initialise_database():
 
 def save_transcription_db(transcription, title, url):
     sqlite_connection = sqlite3.connect("youtube_transcription_db.db")
-    cursor = sqlite_connection.cursor()
-    cursor.execute(
+    sqlite_connection.execute(
         """INSERT INTO TRANSCRIPTIONS
-                   (url, transcript, title, timestamp)
+                   (url, transcript, title)
                    VALUES (?, ?, ?);
                    """,
         (url, transcription, title),
     )
+
     sqlite_connection.commit()
     sqlite_connection.close()
     return

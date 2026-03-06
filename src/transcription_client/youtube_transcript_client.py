@@ -1,3 +1,4 @@
+import os
 import json
 import asyncio
 import logging
@@ -7,6 +8,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from database.sqlite_memory import save_transcription_db
+from utils.cookie_extractor import get_brave_cookies
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +53,7 @@ server_configs = [
                 "--",
                 "yt-dlp",
                 "--cookies",
-                "/path/to/cookies.txt",
+                "./src/utils/cookies.txt",
             ],
         ),
     },
@@ -94,7 +96,7 @@ async def get_transcription_youtube(video_url: str):
 
                         # await display_tools(session)
 
-                        result = await session.call_tool(
+                        transcription_result = await session.call_tool(
                             name="ytdlp_download_transcript",
                             arguments={
                                 "url": video_url,
@@ -102,13 +104,14 @@ async def get_transcription_youtube(video_url: str):
                             },
                         )
 
-                        print(result)
-
                         # Handle MCP error immediately
-                        if hasattr(result, "isError") and result.isError:
+                        if (
+                            hasattr(transcription_result, "isError")
+                            and transcription_result.isError
+                        ):
                             error_text = ""
-                            if result.content:
-                                for content in result.content:
+                            if transcription_result.content:
+                                for content in transcription_result.content:
                                     if content.type == "text":
                                         error_text = content.text
 
@@ -132,49 +135,46 @@ async def get_transcription_youtube(video_url: str):
 
                         title = ""
                         full_transcript = ""
-                        has_more = True
 
-                        while has_more:
-                            for content in result.content:
+                        for content in transcription_result.content:
+                            if content.type == "text":
+                                full_transcript = content.text
+
+                        metadata_result = await session.call_tool(
+                            name="ytdlp_get_video_metadata",
+                            arguments={
+                                "url": video_url,
+                                "fields": ["title"],
+                            },
+                        )
+                        print(metadata_result)
+
+                        title = ""
+                        if metadata_result.content:
+                            for content in metadata_result.content:
                                 if content.type == "text":
                                     try:
                                         data = json.loads(content.text)
                                         title = data.get("title", "")
-                                        transcription = data.get(
-                                            "transcript",
-                                            "",
-                                        )
-                                        full_transcript += transcription
 
-                                        next_cursor = data.get("next_cursor")
-                                        if next_cursor:
-                                            result = await session.call_tool(
-                                                name="get_transcript",
-                                                arguments={
-                                                    "url": video_url,
-                                                    "next_cursor": next_cursor,
-                                                },
-                                            )
-
-                                            # Also validate paginated responses
-                                            if (
-                                                hasattr(result, "isError")
-                                                and result.isError
-                                            ):
-                                                raise Exception(
-                                                    "MCP error during pagination",
-                                                )
-                                        else:
-                                            has_more = False
-
+                                        break  # assuming the first text content contains the metadata
                                     except json.JSONDecodeError:
-                                        print(
-                                            f"Invalid JSON response: {content.text}",
+                                        logger.exception(
+                                            "Failed to parse metadata JSON",
                                         )
+                                        continue
 
-                                        return ""
+                    try:
+                        print("Saving transcription")
+                        save_transcription_db(
+                            full_transcript,
+                            title,
+                            video_url,
+                        )
 
-                    save_transcription_db(full_transcript, title, video_url)
+                    except Exception as e:
+                        print(f"Could not save transcription to db: {e}")
+
                 return full_transcript
 
             except CookieDecryptionError:
