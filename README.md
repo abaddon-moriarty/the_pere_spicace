@@ -48,7 +48,7 @@ pip install -e ".[dev]"
 
 # Set up environment variables
 cp .env
-
+```
 ### Basic Usage
 
 ```bash
@@ -116,7 +116,7 @@ LMSTUDIO_ENDPOINT=http://localhost:1234/v1
 
 # Obsidian Configuration
 OBSIDIAN_VAULT_PATH=/path/to/your/vault
-OBSIDIAN_TEMPLATE_PATH=./config/templates/note_template.md
+<!-- OBSIDIAN_TEMPLATE_PATH=./config/templates/note_template.md --> Not covered yet
 
 # MCP Configuration
 MCP_SERVER_TYPE=docker
