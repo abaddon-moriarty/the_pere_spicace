@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def initialise_database():
     sqlite_connection = sqlite3.connect("youtube_transcription_db.db")
     cursor = sqlite_connection.cursor()
-    logger.warning("Initialising the database.")
+    logger.info("Initialising the database.")
 
     query = "SELECT sqlite_version();"
     cursor.execute(query)

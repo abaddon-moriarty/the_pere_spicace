@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any
 
 from src.database.sqlite_memory import initialise_database
+from src.obsidian.vault_structure import build_vault_map
 from src.transcription_client.youtube_transcript_client import (
     get_transcription_youtube,
 )
@@ -61,13 +62,15 @@ async def async_main(args):
 
 
 def main(args):
+    vault_map = build_vault_map()
+
     initialise_database()
 
-    logger.info("Starting the Youtube learning pipeline")
+    logger.info("Starting the Youtube learning pipeline.")
     video_data = asyncio.run(async_main(args))
 
     logger.info(f"Got transcript: {video_data}")
 
-
+    
 if __name__ == "__main__":
     main(sys.argv)
