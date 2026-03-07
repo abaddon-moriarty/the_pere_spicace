@@ -1,0 +1,17 @@
+Extract the distinct technical concepts from the transcript below.
+
+The transcript is raw auto-generated output and will contain noise: filler words ("um", "uh", "so", "basically", "you know"), false starts, repeated sentences, [Music] or [Applause] tags, and informal spoken language. Ignore all of this and focus only on the actual technical substance.
+
+Rules:
+- Only include a concept if it is actively explained over several sentences, not just mentioned in passing or used as a transition.
+- Each entry must be atomic: one idea per entry. "Bias-Variance Tradeoff" is one concept. Do not split it into "Bias" and "Variance" unless each is explained independently at length.
+- Use short noun phrases, the way you would title an Obsidian note. Good: "Gradient Descent", "L1 Regularization". Bad: "how the model learns", "why regularization matters".
+- The transcript may be in English, French, or switch between both. Extract concept names in English regardless of the transcript language.
+- Aim for 5 to 15 concepts. If the video is genuinely narrow, fewer is correct. Do not pad the list.
+- Ignore meta-content entirely: course introductions, speaker introductions, calls to subscribe or like, chapter transitions, jokes and asides.
+
+Return a JSON array of strings only. Example of correct output:
+["Supervised Learning", "Loss Function", "Gradient Descent", "Learning Rate"]
+
+TRANSCRIPT:
+{transcript}
