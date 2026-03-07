@@ -104,25 +104,23 @@ class LLMClient:
             transcript (str): The transcript text to analyze.
             prompt_name (str): The name of the prompt template to use for extraction.
         Returns:
-            str: The extracted topics/concepts from the LLM response.
+            response (list): The extracted topics/concepts from the LLM response.
         """
         system, user = self._load_prompt(
             name=prompt_name,
             transcript=transcript,
         )
+        messages = []
         if system:
-            response = ollama.chat(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            )
-        else:
-            response = ollama.chat(
-                model=self.model_name,
-                messages=[{"role": "user", "content": user}],
-            )
+            messages.append({"role": "system", "content": system})
+            messages.append({"role": "user", "content": user})
+            response = ollama.chat(model=self.model_name, messages=messages)
+            return json.loads(response["message"]["content"])
+
+        response = ollama.chat(
+            model=self.model_name,
+            messages=[{"role": "user", "content": user}],
+        )
         return json.loads(response["message"]["content"])
 
         # def generate_summary(self, transcript: str) -> str:
@@ -172,14 +170,12 @@ if __name__ == "__main__":
         vault_map = build_vault_map()
         f = f.readlines()
         logger.info("Reading transcription")
-        concepts = (
-            client.topic_extraction(
-                transcript=f,
-                prompt_name="topic_extraction",
-            ),
+        concepts = client.topic_extraction(
+            transcript=f,
+            prompt_name="topic_extraction",
         )
         logger.info(
-            f"Concepts extracted. Found{len(concepts)} concepts\nAmong those: {concepts[:3]})",
+            f"Concepts extracted. Found {len(concepts)} concepts\nAmong those: {concepts[:3]}",
         )
         client.vault_enhancement_mapping(
             transcript=f,
