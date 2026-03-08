@@ -54,11 +54,17 @@ def build_vault_map():
 
                         title = metadata.get("title", "")
                         tags = metadata.get("tags", [])
+                        last_enriched = metadata.get("last_enriched", "")
+                        sources = metadata.get("sources", "")
+                        domain = metadata.get("domain", "")
                         summary = content[:300]
 
                         vault_map[rel_path] = {
                             "title": title,
                             "tags": tags,
+                            "last_enriched": last_enriched,
+                            "domain": domain,
+                            "sources": sources,
                             "summary": summary,
                         }
                     except Exception as e:
@@ -75,6 +81,19 @@ def build_vault_map():
     return vault_map
 
 
+def note_filter(vault_map: dict, url: str) -> dict:
+    # Gets the vault map, the video url and removes any note that already contains the url as a source.
+    # limits a tiny bit the length to process.
+    for name, metadata in vault_map.items():
+        if (
+            name
+            == "Training/Computer Vision/OpenCV with Python — Comprehensive Technical Notes.md"
+        ):
+            for data in metadata.items():
+                if data[0] == "sources":
+                    print(data)
+
+
 if __name__ == "__main__":
     load_dotenv()
     vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
@@ -82,5 +101,10 @@ if __name__ == "__main__":
         vault_data = build_vault_map()
         # Now you can use vault_data, e.g. print number of files
         logger.info(f"Found {len(vault_data)} markdown files.")
+
+        note_filter(
+            vault_map=vault_data,
+            url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
+        )
     else:
         logger.warning("OBSIDIAN_VAULT_PATH not set.")
