@@ -6,7 +6,8 @@ authors = [{name = "abaddon-moriarty", email = "munaund@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "mcp>=1.21.0",           # MCP client/server SDK (for ClientSession, StdioServerParameters, stdio_client)
+    # Add your actual runtime dependencies here
+    # If mcp needs to be installed from a specific source, handle it differently
 ]
 
 [project.optional-dependencies]
@@ -16,36 +17,10 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.23.0",
-    "pytest-mock>=3.10.0",  # For better mocking
+    "pytest-mock>=3.10.0",
     "pre-commit>=3.0.0",
-    "types-requests>=2.31.0",  # Type stubs for requests
+    "types-requests>=2.31.0",
 ]
 docker = [
     "docker>=6.0.0",
 ]
-
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "--verbose",
-    "--strict-markers",
-    "--asyncio-mode=auto",
-    "--cov=src",
-    "--cov-report=term-missing",
-    "--cov-report=html"
-]
-
-[tool.coverage.run]
-source = ["src"]
-omit = ["*/__pycache__/*", "*/test_*.py"]

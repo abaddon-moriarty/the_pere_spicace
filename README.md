@@ -2,9 +2,9 @@
 
 > Transform YouTube videos into Obsidian notes with interactive quizzes using local LLMs
 
-[![Tests](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/python-tests.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/python-tests.yml)
-[![Docker Build](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/docker-build.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/docker-build.yml)
-[![CodeQL](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/yourusername/youtube-learning-pipeline/actions/workflows/codeql-analysis.yml)
+[![Tests](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/python-tests.yml)
+[![Docker Build](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/docker-build.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/docker-build.yml)
+[![CodeQL](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/abaddon-moriarty/the_pere_spicace/actions/workflows/codeql-analysis.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -171,21 +171,21 @@ docker-compose -f docker/docker-compose.yml up
 ## Testing
 
 ```bash
-# Install test dependencies
-pip install -e ".[dev]"
+# Quick test run
+python scripts/run_tests.py
 
-# Run all tests
-pytest
+# Full CI simulation (lint + type-check + coverage)
+python scripts/run_tests.py --ci
 
-# Run specific test modules
-pytest tests/unit/test_main.py -v
-pytest tests/unit/mcp/ -v
+# Or via make
+make ci-local
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Specific test suites
+python scripts/run_tests.py --type unit --coverage
+python scripts/run_tests.py --type integration -v
 
-# Run the test runner script
-python scripts/run_tests.py --type unit --coverage --verbose
+# With linting and type checking
+python scripts/run_tests.py --lint --type-check --coverage -v
 ```
 
 ## Development
@@ -257,7 +257,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 ```bash
 # Fork and clone
-git clone https://github.com/yourusername/youtube-learning-pipeline.git
+git clone https://github.com/abaddon-moriarty/the_pere_spicace.git
 
 # Set up upstream remote
 git remote add upstream https://github.com/originalowner/youtube-learning-pipeline.git

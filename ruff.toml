@@ -2,7 +2,7 @@ line-length = 79
 target-version = "py313"
 
 
-select = [
+lint.select = [
     "E",  # Pycodestyle errors
     "F",  # Pyflakes
     "W",  # Pycodestyle warnings
@@ -44,6 +44,9 @@ select = [
     "PD",  # pandas-vet
 ]
 
+lint.ignore = [
+    "G004",
+]
 
 [lint.isort]
 order-by-type = false

@@ -2,35 +2,27 @@
 Fixed unit tests for YouTube transcript client MCP integration.
 """
 
-import os
-import sys
 import json
+import logging
 
 
 from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest
 
-# Add project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.transcription_client.youtube_transcript_client import (
+    display_tools,
+    save_transcription_db,
+    get_transcription_youtube,
+)
 
 
-# Create proper mock classes that match what your function expects
-class MockTextContent:
-    def __init__(self, text, type="text"):
-        self.type = type
-        self.text = text
+@pytest.fixture(autouse=True)
+def setup_logging(caplog):
+    caplog.set_level(logging.INFO)
 
 
-class MockCallToolResult:
-    def __init__(self, text_content, isError=False):
-        self.content = (
-            text_content if isinstance(text_content, list) else [text_content]
-        )
-        self.isError = isError
-
-
-# Mock MCP types - KEEP THESE HERE (don't import from conftest)
+# Mock MCP types
 class TextContent:
     def __init__(self, type="text", text=""):
         self.type = type
@@ -55,29 +47,38 @@ class CallToolResult:
         self.isError = isError
 
 
-# Import after setting up mocks
-try:
-    from src.transcription_client.youtube_transcript_client import (
-        display_tools,
-        get_transcription_youtube,
-    )
-except ImportError:
-    # Try alternative import path
-    from src.transcription_client.youtube_transcript_client import (
-        display_tools,
-        get_transcription_youtube,
-    )
+class TestSaveTranscriptionDb:
+    """Test database save functionality."""
+
+    def test_save_transcription_success(self):
+        """Test successful transcription save."""
+        with patch("sqlite3.connect") as mock_connect:
+            mock_conn = MagicMock()
+            mock_cursor = MagicMock()
+            mock_conn.cursor.return_value = mock_cursor
+            mock_connect.return_value = mock_conn
+
+            save_transcription_db(
+                transcription="Test transcript",
+                title="Test Title",
+                url="https://youtube.com/test",
+            )
+
+            # Verify database operations
+            mock_cursor.execute.assert_called_once()
+            mock_conn.commit.assert_called_once()
+            mock_conn.close.assert_called_once()
 
 
 class TestDisplayTools:
     """Test the display_tools function."""
 
     @pytest.mark.asyncio
-    async def test_display_tools_with_description(self, capsys):
+    async def test_display_tools_with_description(self, caplog):
         """Test displaying tools with descriptions."""
         mock_session = AsyncMock()
         mock_tools = [
-            Tool(name="get_transcript", description="Get transcript"),
+            Tool(name="get_transcript", description="Get YouTube transcript"),
             Tool(name="other_tool", description="Another tool"),
         ]
         mock_response = ListToolsResult(tools=mock_tools)
@@ -85,8 +86,8 @@ class TestDisplayTools:
 
         await display_tools(mock_session)
 
-        captured = capsys.readouterr()
-        assert "Tool: get_transcript" in captured.out
+        assert "Tool: get_transcript" in caplog.text
+        assert "Get YouTube transcript" in caplog.text
 
 
 class TestGetTranscriptionYoutube:
@@ -114,7 +115,6 @@ class TestGetTranscriptionYoutube:
         mock_session.list_tools = AsyncMock()
         mock_session.call_tool = AsyncMock(return_value=mock_result)
 
-        # Mock context managers
         with (
             patch(
                 "src.transcription_client.youtube_transcript_client.stdio_client",
@@ -122,6 +122,9 @@ class TestGetTranscriptionYoutube:
             patch(
                 "src.transcription_client.youtube_transcript_client.ClientSession",
             ) as mock_client,
+            patch(
+                "src.transcription_client.youtube_transcript_client.save_transcription_db",
+            ),
         ):
             mock_stdio.return_value.__aenter__.return_value = (
                 MagicMock(),
@@ -134,46 +137,6 @@ class TestGetTranscriptionYoutube:
         assert result == expected_transcript
 
     @pytest.mark.asyncio
-    async def test_error_response(self):
-        """Test handling of error response from MCP server."""
-        video_url = "https://www.youtube.com/watch?v=error"
-
-        # Create error response that matches what your function expects
-        error_content = MockTextContent(
-            text='{"error": "Video not found", "transcript": ""}',
-            type="text",
-        )
-        error_result = MockCallToolResult(error_content, isError=True)
-
-        mock_session = AsyncMock()
-        mock_session.initialize = AsyncMock()
-        mock_session.list_tools = AsyncMock()
-        mock_session.call_tool = AsyncMock(return_value=error_result)
-
-        with (
-            patch(
-                "src.transcription_client.youtube_transcript_client.stdio_client",
-            ) as mock_stdio,
-            patch(
-                "src.transcription_client.youtube_transcript_client.ClientSession",
-            ) as mock_client,
-        ):
-            mock_stdio.return_value.__aenter__.return_value = (
-                MagicMock(),
-                MagicMock(),
-            )
-            mock_client.return_value.__aenter__.return_value = mock_session
-
-            from src.transcription_client.youtube_transcript_client import (
-                get_transcription_youtube,
-            )
-
-            result = await get_transcription_youtube(video_url)
-
-        # Should return empty string on error
-        assert result == ""
-
-    @pytest.mark.asyncio
     async def test_transcription_with_pagination(self):
         """Test transcription with pagination."""
         video_url = "https://www.youtube.com/watch?v=longvideo"
@@ -181,6 +144,7 @@ class TestGetTranscriptionYoutube:
         # First chunk with cursor
         first_json = json.dumps(
             {
+                "title": "Long Video",
                 "transcript": "First part ",
                 "next_cursor": "cursor123",
             },
@@ -189,6 +153,7 @@ class TestGetTranscriptionYoutube:
         # Second chunk without cursor
         second_json = json.dumps(
             {
+                "title": "Long Video",
                 "transcript": "Second part.",
                 "next_cursor": None,
             },
@@ -209,16 +174,9 @@ class TestGetTranscriptionYoutube:
         mock_session.list_tools = AsyncMock()
 
         # Make call_tool return different results
-        call_count = 0
-
-        async def call_tool_side_effect(name, arguments):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return first_result
-            return second_result
-
-        mock_session.call_tool = AsyncMock(side_effect=call_tool_side_effect)
+        mock_session.call_tool = AsyncMock(
+            side_effect=[first_result, second_result],
+        )
 
         with (
             patch(
@@ -227,6 +185,9 @@ class TestGetTranscriptionYoutube:
             patch(
                 "src.transcription_client.youtube_transcript_client.ClientSession",
             ) as mock_client,
+            patch(
+                "src.transcription_client.youtube_transcript_client.save_transcription_db",
+            ),
         ):
             mock_stdio.return_value.__aenter__.return_value = (
                 MagicMock(),
@@ -244,12 +205,12 @@ class TestGetTranscriptionYoutube:
         """Test handling of malformed JSON response."""
         video_url = "https://www.youtube.com/watch?v=malformed"
 
-        # Non-JSON response that will cause JSONDecodeError
-        malformed_content = MockTextContent(
-            text="Not JSON at all",
-            type="text",
+        # Non-JSON response
+        malformed_content = TextContent(text="Not JSON at all", type="text")
+        mock_result = CallToolResult(
+            content=[malformed_content],
+            isError=False,
         )
-        mock_result = MockCallToolResult(malformed_content, isError=False)
 
         mock_session = AsyncMock()
         mock_session.initialize = AsyncMock()
@@ -270,15 +231,91 @@ class TestGetTranscriptionYoutube:
             )
             mock_client.return_value.__aenter__.return_value = mock_session
 
-            from src.transcription_client.youtube_transcript_client import (
-                get_transcription_youtube,
-            )
-
-            # This should handle the JSON decode error gracefully
             result = await get_transcription_youtube(video_url)
 
-        # The implementation now returns empty string for all JSON decode errors
+        # Should return empty string on JSON decode error
         assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_retry_on_failure(self):
+        """Test retry mechanism on failure."""
+        video_url = "https://www.youtube.com/watch?v=retry"
+
+        # First attempt fails, second succeeds
+        error_result = CallToolResult(
+            content=[
+                TextContent(type="text", text='{"error": "Temporary error"}'),
+            ],
+            isError=True,
+        )
+
+        success_json = json.dumps(
+            {
+                "title": "Retry Video",
+                "transcript": "Success after retry",
+                "next_cursor": None,
+            },
+        )
+        success_result = CallToolResult(
+            content=[TextContent(type="text", text=success_json)],
+            isError=False,
+        )
+
+        # Create separate mock sessions for each attempt
+        mock_session_1 = AsyncMock()
+        mock_session_1.initialize = AsyncMock()
+        mock_session_1.list_tools = AsyncMock()
+        mock_session_1.call_tool = AsyncMock(return_value=error_result)
+
+        mock_session_2 = AsyncMock()
+        mock_session_2.initialize = AsyncMock()
+        mock_session_2.list_tools = AsyncMock()
+        mock_session_2.call_tool = AsyncMock(return_value=success_result)
+
+        with (
+            patch(
+                "src.transcription_client.youtube_transcript_client.stdio_client",
+            ) as mock_stdio,
+            patch(
+                "src.transcription_client.youtube_transcript_client.ClientSession",
+            ) as mock_client,
+            patch(
+                "src.transcription_client.youtube_transcript_client.save_transcription_db",
+            ),
+            patch("asyncio.sleep"),  # Speed up test by mocking sleep
+        ):
+            # Setup context managers for both attempts
+            mock_stdio_ctx_1 = MagicMock()
+            mock_stdio_ctx_1.__aenter__ = AsyncMock(
+                return_value=(MagicMock(), MagicMock()),
+            )
+            mock_stdio_ctx_1.__aexit__ = AsyncMock()
+
+            mock_stdio_ctx_2 = MagicMock()
+            mock_stdio_ctx_2.__aenter__ = AsyncMock(
+                return_value=(MagicMock(), MagicMock()),
+            )
+            mock_stdio_ctx_2.__aexit__ = AsyncMock()
+
+            mock_stdio.side_effect = [mock_stdio_ctx_1, mock_stdio_ctx_2]
+
+            mock_client_ctx_1 = MagicMock()
+            mock_client_ctx_1.__aenter__ = AsyncMock(
+                return_value=mock_session_1,
+            )
+            mock_client_ctx_1.__aexit__ = AsyncMock()
+
+            mock_client_ctx_2 = MagicMock()
+            mock_client_ctx_2.__aenter__ = AsyncMock(
+                return_value=mock_session_2,
+            )
+            mock_client_ctx_2.__aexit__ = AsyncMock()
+
+            mock_client.side_effect = [mock_client_ctx_1, mock_client_ctx_2]
+
+            result = await get_transcription_youtube(video_url)
+
+        assert result == "Success after retry"
 
     @pytest.mark.asyncio
     async def test_empty_transcript(self):
@@ -287,6 +324,7 @@ class TestGetTranscriptionYoutube:
 
         mock_json = json.dumps(
             {
+                "title": "Empty Video",
                 "transcript": "",
                 "next_cursor": None,
             },
@@ -309,6 +347,9 @@ class TestGetTranscriptionYoutube:
             patch(
                 "src.transcription_client.youtube_transcript_client.ClientSession",
             ) as mock_client,
+            patch(
+                "src.transcription_client.youtube_transcript_client.save_transcription_db",
+            ),
         ):
             mock_stdio.return_value.__aenter__.return_value = (
                 MagicMock(),
@@ -317,7 +358,5 @@ class TestGetTranscriptionYoutube:
             mock_client.return_value.__aenter__.return_value = mock_session
 
             result = await get_transcription_youtube(video_url)
-
-        # FIXED: Should return empty string, not "Not JSON at all"
 
         assert result == ""
