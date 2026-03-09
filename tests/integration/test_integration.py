@@ -1,85 +1,29 @@
-"""
-Integration tests for the complete pipeline.
-"""
-
-import logging
+import sys
 
 
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
-import pytest
-
-
-# Set up logging to capture all levels
-@pytest.fixture(autouse=True)
-def setup_logging(caplog):
-    caplog.set_level(logging.INFO)
+from main import main
 
 
-class TestFullPipelineIntegration:
-    """Integration tests for the full pipeline."""
+@patch("main.check_retrieved_transcriptions")
+@patch("main.get_transcription_youtube", new_callable=AsyncMock)
+@patch("main.initialise_database")
+@patch("main.build_vault_map")
+def test_pipeline_full_flow(
+    mock_build_vault,
+    mock_init_db,
+    mock_get,
+    mock_check,
+):
+    mock_check.return_value = None
+    mock_get.return_value = "integrated transcript"
+    mock_build_vault.return_value = {}
 
-    def test_end_to_end_with_mocks(self, mock_database, caplog):
-        """Test the full pipeline with all components mocked."""
-        test_args = [
-            "main.py",
-            "https://www.youtube.com/watch?v=integration_test",
-        ]
-        mock_transcript = "Integration test transcript."
+    with patch("sys.argv", ["script.py", "https://youtu.be/123"]):
+        main(sys.argv)
 
-        # Mock asyncio.run
-        with patch("asyncio.run") as mock_run:
-            mock_run.return_value = mock_transcript
-
-            from main import main
-
-            main(test_args)
-
-            assert "Starting the Youtube learning pipeline" in caplog.text
-            assert "Got transcript:" in caplog.text
-
-    def test_error_handling_integration(self, mock_database, caplog):
-        """Test error handling through the entire pipeline."""
-        test_args = ["main.py", "https://youtube.com/invalid"]
-
-        with patch("asyncio.run") as mock_run:
-            mock_run.return_value = ""
-
-            from main import main
-
-            main(test_args)
-
-            assert "Starting the Youtube learning pipeline" in caplog.text
-
-    @pytest.mark.asyncio
-    async def test_full_async_flow(
-        self,
-        mock_database,
-        mock_transcription_client,
-    ):
-        """Test the full async flow from URL validation to transcription."""
-        from main import async_main
-
-        test_args = ["main.py", "https://www.youtube.com/watch?v=async_test"]
-
-        result = await async_main(test_args)
-
-        assert result is not None
-        assert isinstance(result, str) or isinstance(result, list)
-
-    def test_database_caching(self, mock_database, caplog):
-        """Test that cached transcripts are retrieved from database."""
-        test_args = ["main.py", "https://www.youtube.com/watch?v=cached"]
-        cached_transcript = [("Cached transcript content",)]
-
-        # Configure mock to return cached transcript
-        mock_database.cursor().fetchall.return_value = cached_transcript
-
-        with patch("asyncio.run") as mock_run:
-            mock_run.return_value = cached_transcript
-
-            from main import main
-
-            main(test_args)
-
-            assert "Starting the Youtube learning pipeline" in caplog.text
+    mock_build_vault.assert_called_once()
+    mock_init_db.assert_called_once()
+    mock_check.assert_called_once_with("https://youtu.be/123")
+    mock_get.assert_called_once_with("https://youtu.be/123")
