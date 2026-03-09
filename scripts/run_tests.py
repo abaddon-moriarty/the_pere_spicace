@@ -5,11 +5,20 @@ Test runner script for the YouTube Learning Pipeline.
 """
 
 import sys
+import logging
 import argparse
 import subprocess
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
-def run_tests(test_type="all", coverage=False, verbose=False):
+
+def run_tests(
+    test_type: str = "all",
+    *,
+    coverage: bool = False,
+    verbose: bool = False,
+) -> int:
     """Run tests with specified options."""
 
     # Base pytest command
@@ -41,7 +50,7 @@ def run_tests(test_type="all", coverage=False, verbose=False):
     cmd.append("--asyncio-mode=auto")
 
     # Run the tests
-    print(f"Running command: {' '.join(cmd)}")
+    logger.info(f"Running command: {' '.join(cmd)}")
     result = subprocess.run(cmd)
 
     return result.returncode
@@ -49,16 +58,17 @@ def run_tests(test_type="all", coverage=False, verbose=False):
 
 def run_type_check():
     """Run mypy type checking."""
-    print("\n🔎 Running type checks...")
+    logger.info("\n🔎 Running type checks...")
     result = subprocess.run(["mypy", "src/"])
     return result.returncode
 
 
-def main():
+def main() -> int:
     """Main entry point for test runner."""
     parser = argparse.ArgumentParser(
         description="Run tests for YouTube Learning Pipeline",
     )
+
     parser.add_argument(
         "--type",
         choices=["all", "unit", "integration", "mcp", "main"],
@@ -66,20 +76,13 @@ def main():
         help="Type of tests to run",
     )
     parser.add_argument(
-        "--coverage",
-        action="store_true",
-        help="Generate coverage report",
+        "--coverage", action="store_true", help="Generate coverage report",
     )
     parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Verbose output",
+        "-v", "--verbose", action="store_true", help="Verbose output",
     )
     parser.add_argument(
-        "--lint",
-        action="store_true",
-        help="Run linting checks before tests",
+        "--lint", action="store_true", help="Run linting checks before tests",
     )
     parser.add_argument(
         "--type-check",
@@ -103,36 +106,40 @@ def main():
 
     # Run linting if requested
     if args.lint:
-        print("Running linting checks...")
+        logger.info("Running linting checks...")
         lint_result = subprocess.run(["ruff", "check", "."])
         if lint_result.returncode != 0:
-            print("Linting failed. Fix issues before running tests.")
+            logger.error("Linting failed. Fix issues before running tests.")
             return lint_result.returncode
 
-        print("Running formatting check...")
+        logger.info("Running formatting check...")
         format_result = subprocess.run(["ruff", "format", "--check", "."])
         if format_result.returncode != 0:
-            print("Formatting issues found.")
+            logger.error("Formatting issues found.")
             return format_result.returncode
 
-        print("Linting passed!\n")
+        logger.info("Linting passed!\n")
 
     # Run type checking if requested
     if args.type_check:
         type_result = run_type_check()
         if type_result != 0:
-            print("Type checking failed.")
+            logger.error("Type checking failed.")
             return type_result
-        print("Type checking passed!\n")
+        logger.info("Type checking passed!\n")
 
     # Run tests
-    print("Running tests...")
-    test_result = run_tests(args.type, args.coverage, args.verbose)
+    logger.info("Running tests...")
+    test_result = run_tests(
+        args.type,
+        coverage=args.coverage,
+        verbose=args.verbose,
+    )
 
     if test_result == 0:
-        print("\nAll checks passed!")
+        logger.info("\nAll checks passed!")
     else:
-        print("\nTests failed!")
+        logger.error("\nTests failed!")
 
     return test_result
 

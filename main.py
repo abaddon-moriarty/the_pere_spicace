@@ -41,10 +41,9 @@ def check_retrieved_transcriptions(url: str) -> list[Any] | None:
             "SELECT transcript FROM TRANSCRIPTIONS WHERE url = ?;",
             (url,),
         ).fetchall()
-        if result:
-            return result
+        return result if result else []  # return empty list if no rows
     except Exception:
-        logger.exception(Exception)
+        logger.exception("Database error")
         return None
     finally:
         sqlite_connection.close()
@@ -54,7 +53,7 @@ async def async_main(args):
     youtube_url = validate_youtube_url(args)
 
     transcript = check_retrieved_transcriptions(youtube_url)
-    if check_retrieved_transcriptions(youtube_url):
+    if transcript:
         logger.info("Video already transcribed, pulling the transcription.")
         return transcript
     logger.info("Retrieving the transcription...")
@@ -62,7 +61,7 @@ async def async_main(args):
 
 
 def main(args):
-    vault_map = build_vault_map()
+    vault_map = build_vault_map()  # currently unused, will be used later
 
     initialise_database()
 
@@ -71,6 +70,6 @@ def main(args):
 
     logger.info(f"Got transcript: {video_data}")
 
-    
+
 if __name__ == "__main__":
     main(sys.argv)

@@ -1,16 +1,23 @@
 import re
 
+
+from pathlib import Path
+
 import frontmatter
 
 
-def chunker(note_name):
+def chunker(note_name: str):
+    """
+    Split a markdown note into chunks based on headings.
+    Each chunk includes the heading and the content under it until the next heading.
+    Returns a list of dicts with keys: heading, content, source.
+    """
     chunks = []
 
-    with open(note_name, encoding="utf-8") as file:
+    with Path.open(note_name, encoding="utf-8") as file:
         post = frontmatter.load(file)
         body = post.content
         sections = re.split(r"(\#+.*)", body)
-        chunks = []
         previous_section = ""
 
         for section in sections[:50]:

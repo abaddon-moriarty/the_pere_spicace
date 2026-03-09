@@ -24,3 +24,7 @@ dev = [
 docker = [
     "docker>=6.0.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
