@@ -39,7 +39,7 @@ class LLMClient:
         self.model_name = model_name
         self.prompt_dir = prompt_dir
 
-    def _load_prompt(self, name: str, **kwargs) -> list:
+    def _load_prompt(self, name: str, **kwargs) -> tuple[str | None, str]:
         """
         Load and format a prompt template from files.
         Searches for prompt files matching the given name in the prompt
@@ -68,9 +68,13 @@ class LLMClient:
                     context_template = prompt_path.read_text(encoding="utf-8")
                 elif "user" in prompt_path.name:
                     user_template = prompt_path.read_text(encoding="utf-8")
+            if user_template is None:
+                raise ValueError(f"No user prompt found for {name}")
             return context_template, user_template.format(**kwargs)
 
         prompt_path = self.prompt_dir / f"{name}.txt"
+        if not prompt_path.exists():
+            raise FileNotFoundError(f"Prompt file {prompt_path} not found")
         template = prompt_path.read_text(encoding="utf-8")
         return None, template.format(**kwargs)
 
