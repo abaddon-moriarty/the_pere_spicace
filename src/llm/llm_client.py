@@ -204,17 +204,3 @@ if __name__ == "__main__":
             prompt_name="vault_mapper",
         )
         logger.info(mapping)
-
-    # print(
-    #     client.load_prompt(
-    #         "topic_extraction",
-    #         transcript="test",
-    #     ),
-    # )
-
-    # if len(sys.argv) > 1:
-    #     prompt = " ".join(sys.argv[1:])
-    #     response = client.chat(prompt)
-    #     print("\nResponse:\n", response)
-    # else:
-    #     print("Usage: python llm_client.py: <your prompt here>")
