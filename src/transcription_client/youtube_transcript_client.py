@@ -4,6 +4,7 @@ import logging
 import secrets
 
 
+from typing import Any, cast
 from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
@@ -17,26 +18,29 @@ logging.basicConfig(level=logging.INFO)
 
 
 class CookieDecryptionError(Exception):
-    """Raised when browser cookies cannot be decrypted."""
+    pass
 
 
 class YouTubeRateLimitError(Exception):
-    """Raised when YouTube returns a 429 rate limit error."""
+    pass
 
 
 class MCPError(Exception):
-    """Raised when the MCP tool returns an error."""
+    pass
 
 
-server_params = StdioServerParameters(
-    command="npx",
-    args=[
-        "-y",
-        "@kevinwatt/yt-dlp-mcp",
-    ],
-)
+def _raise_mcp_error(error_text: str) -> None:
+    if "cannot decrypt v11 cookies: no key found" in error_text:
+        msg = f"Cookies could not be decrypted: {error_text}"
+        raise CookieDecryptionError(msg)
+    if "429" in error_text or "Too Many Requests" in error_text:
+        msg = f"YouTube rate limit: {error_text}"
+        raise YouTubeRateLimitError(msg)
+    msg = f"MCP error: {error_text}"
+    raise MCPError(msg)
 
-server_configs = [
+
+server_configs: list[dict[str, Any]] = [
     {
         "name": "brave",
         "params": StdioServerParameters(
@@ -83,8 +87,9 @@ async def get_transcription_youtube(video_url: str):
     """
     for config in server_configs:
         logger.info(f"Trying with {config['name']}...")
-        server_params = config["params"]
-        max_attempts = 2  # per configuration
+        # Cast to StdioServerParameters to help mypy
+        server_params = cast("StdioServerParameters", config["params"])
+        max_attempts = 2
 
         for attempt in range(max_attempts):
             logger.warning(
@@ -101,10 +106,19 @@ async def get_transcription_youtube(video_url: str):
 
                         transcription_result = await session.call_tool(
                             name="ytdlp_download_transcript",
-                            arguments={
-                                "url": video_url,
-                            },
+                            arguments={"url": video_url},
                         )
+
+                        if (
+                            hasattr(transcription_result, "isError")
+                            and transcription_result.isError
+                        ):
+                            error_text = ""
+                            if transcription_result.content:
+                                for content in transcription_result.content:
+                                    if content.type == "text":
+                                        error_text = content.text
+                            _raise_mcp_error(error_text)
 
                         full_transcript = ""
                         for content in transcription_result.content:
@@ -202,7 +216,12 @@ async def _handle_cookie_error(video_url: str):
         get_brave_cookies(video_url)
         cookie_path = Path("cookies.txt").resolve()
         # Update the cookies_file config
-        server_configs[1]["params"].args = [
+        # cast to StdioServerParameters
+        cookies_config = cast(
+            "StdioServerParameters",
+            server_configs[1]["params"],
+        )
+        cookies_config.args = [
             "-y",
             "@kevinwatt/yt-dlp-mcp",
             "--",

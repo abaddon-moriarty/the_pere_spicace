@@ -221,18 +221,16 @@ ollama pull model
 # Quick test run
 python scripts/run_tests.py
 
-# Full CI simulation (lint + type-check + coverage)
-python scripts/run_tests.py --ci
-
-# Or via make
-make ci-local
-
+# Lint test
 # Specific test suites
 python scripts/run_tests.py --type unit --coverage
 python scripts/run_tests.py --type integration -v
 
 # With linting and type checking
 python scripts/run_tests.py --lint --type-check --coverage -v
+
+# To resolve the fixable issues
+ruff check --fix
 ```
 
 ## Development

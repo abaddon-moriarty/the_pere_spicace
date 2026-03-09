@@ -109,9 +109,9 @@ class LLMClient:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": user})
-            response = ollama.chat(model=self.model_name, messages=messages)
-            return json.loads(response["message"]["content"])
+        messages.append({"role": "user", "content": user})
+        response = ollama.chat(model=self.model_name, messages=messages)
+        return json.loads(response["message"]["content"])
 
         response = ollama.chat(
             model=self.model_name,
@@ -162,32 +162,26 @@ class LLMClient:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": user})
-            response = ollama.chat(model=self.model_name, messages=messages)
-            return json.loads(response["message"]["content"])
-
-        response = ollama.chat(
-            model=self.model_name,
-            messages=[{"role": "user", "content": user}],
-        )
+        messages.append({"role": "user", "content": user})
+        response = ollama.chat(model=self.model_name, messages=messages)
         return json.loads(response["message"]["content"])
 
 
 if __name__ == "__main__":
     load_dotenv()
     model = os.getenv("OLLAMA_MODEL")
-    prompts_dir = Path(os.getenv("PROMPTS_DIR"))
-
-    if not model:
-        logger.warning("OLLAMA_MODEL not set in .env")
+    prompts_dir_str = os.getenv("PROMPTS_DIR")
+    if not model or not prompts_dir_str:
+        logger.error("OLLAMA_MODEL or PROMPTS_DIR not set in .env")
         sys.exit(1)
 
+    prompts_dir = Path(prompts_dir_str)
     client = LLMClient(model, prompts_dir)
     logger.info(f"LLM client initialized with model: {model}")
 
-    with Path.open("./test.txt", encoding="utf-8") as f:
-        vault_map = build_vault_map()
+    with Path("./test.txt").open(encoding="utf-8") as f:
         transcript_text = f.read()
+        vault_map = build_vault_map()
         logger.info("Reading transcription")
         concepts = client.topic_extraction(
             transcript=transcript_text,

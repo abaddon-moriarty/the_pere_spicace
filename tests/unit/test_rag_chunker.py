@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock, mock_open
 
-from src.rag.chuncker import chunker
+from src.rag.chunker import chunker
 
 
 def test_chunker_with_markdown_file(tmp_path):
@@ -44,7 +44,7 @@ the fifty character minimum.
 def test_chunker_no_frontmatter(_):
     # The open patch is needed to satisfy the decorator
     # mock_file receives the injected mock
-    with patch("src.rag.chuncker.frontmatter.load") as mock_frontmatter:
+    with patch("src.rag.chunker.frontmatter.load") as mock_frontmatter:
         mock_post = MagicMock()
         mock_post.content = "Just plain text without headings."
         mock_frontmatter.return_value = mock_post

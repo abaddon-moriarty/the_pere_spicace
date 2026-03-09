@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
         note_filter(
             vault_map=vault_data,
-            url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
+            _url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
         )
     else:
         logger.warning("OBSIDIAN_VAULT_PATH not set.")

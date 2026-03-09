@@ -57,10 +57,11 @@ def run_tests(
     return result.returncode
 
 
-def run_type_check():
+def run_type_check() -> int:
     """Run mypy type checking."""
     logger.info("\n🔎 Running type checks...")
-    result = subprocess.run(["mypy", "src/"])  # noqa: S607
+    # Use package-based checking to avoid duplicate module errors
+    result = subprocess.run(["mypy", "-p", "src", "--explicit-package-bases"])  # noqa: S607
     return result.returncode
 
 
