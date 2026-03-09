@@ -69,12 +69,14 @@ class LLMClient:
                 elif "user" in prompt_path.name:
                     user_template = prompt_path.read_text(encoding="utf-8")
             if user_template is None:
-                raise ValueError(f"No user prompt found for {name}")
+                msg = f"No user prompt found for {name}"
+                raise ValueError(msg)
             return context_template, user_template.format(**kwargs)
 
         prompt_path = self.prompt_dir / f"{name}.txt"
         if not prompt_path.exists():
-            raise FileNotFoundError(f"Prompt file {prompt_path} not found")
+            msg = f"Prompt file {prompt_path} not found"
+            raise FileNotFoundError(msg)
         template = prompt_path.read_text(encoding="utf-8")
         return None, template.format(**kwargs)
 
