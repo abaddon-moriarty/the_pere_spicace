@@ -9,7 +9,8 @@ import frontmatter
 def chunker(note_name: str):
     """
     Split a markdown note into chunks based on headings.
-    Each chunk includes the heading and the content under it until the next heading.
+    Each chunk includes the heading and the content under it
+    until the next heading.
     Returns a list of dicts with keys: heading, content, source.
     """
     chunks = []
@@ -24,16 +25,16 @@ def chunker(note_name: str):
             if section:
                 if len(section) > 2000:
                     section = section.split("\n\n")
-                    # print("Large chunk detected")
-                    # print(section)
+
                 if re.match(r"#+.*", section):
                     current_heading = section.strip()
-                    # print(f"Curent heading: {current_heading}")
                 elif section.strip() and len(section.strip()) > 50:
                     chunks.append(
                         {
                             "heading": current_heading,
-                            "content": f"{previous_section}\n{section.strip()}",
+                            "content": (
+                                f"{previous_section}\n{section.strip()}"
+                            ),
                             "source": note_name,
                         },
                     )

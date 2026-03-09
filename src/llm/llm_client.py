@@ -119,15 +119,20 @@ class LLMClient:
         )
         return json.loads(response["message"]["content"])
 
-        # def generate_summary(self, transcript: str) -> str:
-        # """Generate a summary from the transcript."""
-        # prompt = f"Summarize the following transcript in a few paragraphs:\n\n{transcript}"
-        # return self.chat(prompt)
+    def generate_summary(self, transcript: str) -> str:
+        """Generate a summary from the transcript."""
+        prompt = f"Summarize the following transcript in a few paragraphs:\
+            \n\n{transcript}"
 
-        # def generate_quiz(self, summary: str) -> str:
-        # """Generate quiz questions based on the summary."""
-        # prompt = f"Based on this summary, create 5 quiz questions with answers:\n\n{summary}"
-        # return self.chat(prompt)
+        return self.chat(prompt)
+
+    def generate_quiz(self, summary: str) -> str:
+        """Generate quiz questions based on the summary."""
+        prompt = (
+            f"Based on this summary, create 5 quiz questions with answers:\
+            \n\n{summary}"
+        )
+        return self.chat(prompt)
 
     def vault_enhancement_mapping(
         self,
@@ -199,6 +204,7 @@ if __name__ == "__main__":
             prompt_name="vault_mapper",
         )
         logger.info(mapping)
+
     # print(
     #     client.load_prompt(
     #         "topic_extraction",

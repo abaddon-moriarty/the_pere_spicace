@@ -41,10 +41,11 @@ def check_retrieved_transcriptions(url: str) -> list[Any] | None:
             "SELECT transcript FROM TRANSCRIPTIONS WHERE url = ?;",
             (url,),
         ).fetchall()
-        return result if result else []  # return empty list if no rows
     except Exception:
         logger.exception("Database error")
         return None
+    else:
+        return result if result else []  # return empty list if no rows
     finally:
         sqlite_connection.close()
 
@@ -61,7 +62,7 @@ async def async_main(args):
 
 
 def main(args):
-    vault_map = build_vault_map()  # currently unused, will be used later
+    _ = build_vault_map()  # vault_map currently unused, will be used later
 
     initialise_database()
 

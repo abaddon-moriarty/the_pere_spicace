@@ -5,6 +5,7 @@ Test runner script for the YouTube Learning Pipeline.
 """
 
 import sys
+import shutil
 import logging
 import argparse
 import subprocess
@@ -51,7 +52,7 @@ def run_tests(
 
     # Run the tests
     logger.info(f"Running command: {' '.join(cmd)}")
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd)  # noqa: S603
 
     return result.returncode
 
@@ -59,7 +60,7 @@ def run_tests(
 def run_type_check():
     """Run mypy type checking."""
     logger.info("\n🔎 Running type checks...")
-    result = subprocess.run(["mypy", "src/"])
+    result = subprocess.run(["mypy", "src/"])  # noqa: S607
     return result.returncode
 
 
@@ -76,13 +77,20 @@ def main() -> int:
         help="Type of tests to run",
     )
     parser.add_argument(
-        "--coverage", action="store_true", help="Generate coverage report",
+        "--coverage",
+        action="store_true",
+        help="Generate coverage report",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Verbose output",
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose output",
     )
     parser.add_argument(
-        "--lint", action="store_true", help="Run linting checks before tests",
+        "--lint",
+        action="store_true",
+        help="Run linting checks before tests",
     )
     parser.add_argument(
         "--type-check",
@@ -107,13 +115,15 @@ def main() -> int:
     # Run linting if requested
     if args.lint:
         logger.info("Running linting checks...")
-        lint_result = subprocess.run(["ruff", "check", "."])
+        _ruff = shutil.which("ruff") or "ruff"
+        lint_result = subprocess.run([_ruff, "check", "."])  # noqa: S603
+
         if lint_result.returncode != 0:
             logger.error("Linting failed. Fix issues before running tests.")
             return lint_result.returncode
 
         logger.info("Running formatting check...")
-        format_result = subprocess.run(["ruff", "format", "--check", "."])
+        format_result = subprocess.run([_ruff, "format", "--check", "."])  # noqa: S603
         if format_result.returncode != 0:
             logger.error("Formatting issues found.")
             return format_result.returncode

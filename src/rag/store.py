@@ -18,9 +18,9 @@ class VaultStore:
 
     def index_file(
         self,
-        filepath: str,
-        chunks: list[dict],
-        embeddings: list[list[float]],
+        _filepath: str,
+        _chunks: list[dict],
+        _embeddings: list[list[float]],
     ):
         """
         Before inserting, delete all existing chunks for this file
@@ -30,17 +30,15 @@ class VaultStore:
         """
         return
 
-    def delete_file(self, filepath: str):
-        """
-        removes all chunks belonging to a deleted file.
-        """
+    def delete_file(self, _filepath: str) -> None:
+        """Remove all chunks belonging to a deleted file."""
 
     def query(
         self,
-        query_embedding: list[float],
-        n_results: int,
+        _query_embedding: list[float],
+        _n_results: int,
     ) -> list[dict]:
         """
-        returns the top N most similar chunks
-        with their text and source metadata.
+        Return the top N most similar chunks with text and source metadata.
         """
+        return []

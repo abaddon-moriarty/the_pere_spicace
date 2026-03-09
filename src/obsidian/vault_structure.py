@@ -1,6 +1,9 @@
 import os
 import logging
 
+
+from pathlib import Path
+
 import frontmatter
 
 
@@ -43,11 +46,10 @@ def build_vault_map():
         for root, _, files in os.walk(vault_path):
             for file in files:
                 if (file.endswith(".md")) and ("Templates" not in root):
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, vault_path)
-
+                    full_path = Path(root, file)
+                    rel_path = str(full_path.relative_to(vault_path))
                     try:
-                        with open(full_path, encoding="utf-8") as f:
+                        with Path(full_path).open(encoding="utf-8") as f:
                             post = frontmatter.load(f)
                             metadata = post.metadata
                             content = post.content
@@ -67,13 +69,13 @@ def build_vault_map():
                             "sources": sources,
                             "summary": summary,
                         }
-                    except Exception as e:
-                        logger.exception(f"Error processing {full_path}: {e}")
+                    except Exception:
+                        logger.exception(f"Error processing {full_path}")
                         continue
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(
-            f"OBSIDIAN_VAULT_PATH not set – vault features disabled. or\n {e}",
+            f"OBSIDIAN_VAULT_PATH not set - vault features disabled.\n{e}",
         )
         return None
 
@@ -81,17 +83,13 @@ def build_vault_map():
     return vault_map
 
 
-def note_filter(vault_map: dict, url: str) -> dict:
-    # Gets the vault map, the video url and removes any note that already contains the url as a source.
+def note_filter(vault_map: dict, _url: str) -> dict:
+    # Gets the vault map, the video url and removes any note that already
+    # contains the url as a source.
     # limits a tiny bit the length to process.
     for name, metadata in vault_map.items():
-        if (
-            name
-            == "Training/Computer Vision/OpenCV with Python — Comprehensive Technical Notes.md"
-        ):
-            for data in metadata.items():
-                if data[0] == "sources":
-                    print(data)
+        logger.info("%s: %s", name, metadata)
+    return vault_map
 
 
 if __name__ == "__main__":

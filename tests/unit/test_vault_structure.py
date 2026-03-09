@@ -4,7 +4,7 @@ import pytest
 
 from src.obsidian.vault_structure import build_vault_map
 
-# ── Shared fixture ────────────────────────────────────────────────────────────
+# ── Shared fixture ───────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -40,12 +40,12 @@ def temp_vault_dir(tmp_path):
     return tmp_path
 
 
-# ── Tests ─────────────────────────────────────────────────────────────────────
+# ── Tests ────────────────────────────────────────────────────────────────────
 
 
 @patch("src.obsidian.vault_structure.load_dotenv")
 def test_build_vault_map_success(
-    mock_load_dotenv,
+    _,
     temp_vault_dir,
     monkeypatch,
 ):
@@ -70,7 +70,7 @@ def test_build_vault_map_success(
 
 
 @patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_no_env(mock_load_dotenv, monkeypatch):
+def test_build_vault_map_no_env(_, monkeypatch):
     """
     When OBSIDIAN_VAULT_PATH is not set, os.walk(None) raises TypeError,
     caught by the outer except — returns None.
@@ -83,7 +83,7 @@ def test_build_vault_map_no_env(mock_load_dotenv, monkeypatch):
 
 
 @patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_invalid_path(mock_load_dotenv, monkeypatch):
+def test_build_vault_map_invalid_path(_, monkeypatch):
     """
     When the vault path does not exist, os.walk silently yields nothing
     and the function returns an empty dict (not None).
@@ -98,7 +98,7 @@ def test_build_vault_map_invalid_path(mock_load_dotenv, monkeypatch):
 
 @patch("src.obsidian.vault_structure.load_dotenv")
 def test_build_vault_map_skips_templates(
-    mock_load_dotenv,
+    _,
     temp_vault_dir,
     monkeypatch,
 ):
@@ -112,7 +112,7 @@ def test_build_vault_map_skips_templates(
 
 @patch("src.obsidian.vault_structure.load_dotenv")
 def test_build_vault_map_handles_bad_file(
-    mock_load_dotenv,
+    _,
     temp_vault_dir,
     monkeypatch,
     caplog,
@@ -122,7 +122,7 @@ def test_build_vault_map_handles_bad_file(
 
     bad_file = temp_vault_dir / "bad.md"
     bad_file.write_bytes(
-        b"\xff\xfe"
+        b"\xff\xfe",
     )  # invalid UTF-8 — raises UnicodeDecodeError on open
 
     import logging

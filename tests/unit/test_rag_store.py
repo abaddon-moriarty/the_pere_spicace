@@ -26,7 +26,8 @@ def test_index_file(mock_persistent_client):
     mock_persistent_client.return_value = MagicMock()
 
     store = VaultStore(persist_path="/fake")
-    # index_file is currently a placeholder — just verify it exists and doesn't raise
+    # index_file is currently a placeholder
+    # just verify it exists and doesn't raise
     store.index_file("file.md", [], [])
 
 
@@ -35,7 +36,8 @@ def test_delete_file(mock_persistent_client):
     mock_persistent_client.return_value = MagicMock()
 
     store = VaultStore(persist_path="/fake")
-    # delete_file is currently a placeholder — just verify it exists and doesn't raise
+    # delete_file is currently a placeholder
+    # just verify it exists and doesn't raise
     store.delete_file("file.md")
 
 
@@ -44,5 +46,6 @@ def test_query(mock_persistent_client):
     mock_persistent_client.return_value = MagicMock()
 
     store = VaultStore(persist_path="/fake")
-    # query is currently a placeholder — just verify it exists and doesn't raise
+    # query is currently a placeholder
+    # just verify it exists and doesn't raise
     store.query([0.1, 0.2], 5)

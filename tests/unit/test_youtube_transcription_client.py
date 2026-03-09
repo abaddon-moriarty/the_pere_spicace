@@ -28,6 +28,32 @@ class MCPError(Exception):
     """Raised when the MCP tool returns an error."""
 
 
+def _raise_mcp_error(error_text: str) -> None:
+    """
+    Analyze MCP error text and raise the appropriate exception.
+
+    Args:
+        error_text (str): The error message from the MCP tool.
+
+    Raises:
+        CookieDecryptionError:
+            If the error indicates cookie decryption failure.
+        YouTubeRateLimitError:
+            If the error indicates a rate limit (429).
+        MCPError: For any other MCP error.
+    """
+    if "cannot decrypt v11 cookies: no key found" in error_text:
+        msg = f"Cookies could not be decrypted: {error_text}"
+        raise CookieDecryptionError(msg)
+
+    if "429" in error_text or "Too Many Requests" in error_text:
+        msg = f"YouTube rate limit: {error_text}"
+        raise YouTubeRateLimitError(msg)
+
+    msg = f"MCP error: {error_text}"
+    raise MCPError(msg)
+
+
 server_configs = [
     {
         "name": "brave",
@@ -70,7 +96,8 @@ async def get_transcription_youtube(video_url: str):
 
         for attempt in range(max_attempts):
             logger.warning(
-                f"YouTube Transcription yt-dlp-mcp MCP connexion attempt: {attempt + 1}",
+                f"YouTube Transcription yt-dlp-mcp MCP connexion attempt:\
+                    {attempt + 1}",
             )
 
             try:
@@ -93,21 +120,9 @@ async def get_transcription_youtube(video_url: str):
                                     if content.type == "text":
                                         error_text = content.text
 
-                            if (
-                                "cannot decrypt v11 cookies: no key found"
-                                in error_text
-                            ):
-                                msg = f"Cookies could not be decrypted: {error_text}"
-                                raise CookieDecryptionError(msg)
-
-                            if (
-                                "429" in error_text
-                                or "Too Many Requests" in error_text
-                            ):
-                                msg = f"YouTube rate limit: {error_text}"
-                                raise YouTubeRateLimitError(msg)
-
-                            raise MCPError(f"MCP error: {error_text}")
+                            # Use the helper function to raise
+                            # the appropriate exception
+                            _raise_mcp_error(error_text)
 
                         full_transcript = ""
                         for content in transcription_result.content:
@@ -130,21 +145,21 @@ async def get_transcription_youtube(video_url: str):
                                         break
                                     except json.JSONDecodeError:
                                         logger.exception(
-                                            "Failed to parse metadata JSON"
+                                            "Failed to parse metadata JSON",
                                         )
                                         continue
 
                     try:
                         logger.info("Saving transcription")
                         save_transcription_db(
-                            full_transcript, title, video_url
+                            full_transcript,
+                            title,
+                            video_url,
                         )
-                    except Exception as e:
-                        logger.error(
-                            f"Could not save transcription to db: {e}"
+                    except Exception:
+                        logger.exception(
+                            "Could not save transcription to db",
                         )
-
-                return full_transcript
 
             except CookieDecryptionError:
                 # Direct CookieDecryptionError (rare)
@@ -160,18 +175,21 @@ async def get_transcription_youtube(video_url: str):
                         logger.warning("Cookie decryption error (in group)...")
                         await _handle_cookie_error(video_url)
                     elif isinstance(
-                        inner_ex, (YouTubeRateLimitError, MCPError)
+                        inner_ex,
+                        (YouTubeRateLimitError, MCPError),
                     ):
-                        raise inner_ex
+                        raise inner_ex from eg
                     else:
                         # Unknown exception, re-raise group
                         raise
                 else:
-                    # Multiple exceptions – check for CookieDecryptionError inside
+                    # Multiple exceptions
+                    # check for CookieDecryptionError inside
                     for ex in eg.exceptions:
                         if isinstance(ex, CookieDecryptionError):
                             logger.warning(
-                                "Cookie decryption error (in group with others)..."
+                                "Cookie decryption error\
+                                    (in group with others)",
                             )
                             await _handle_cookie_error(video_url)
                             break
@@ -179,9 +197,9 @@ async def get_transcription_youtube(video_url: str):
                         # No cookie error, re-raise group
                         raise
 
-            except Exception as ex:
+            except Exception:
                 logger.exception(
-                    f"Attempt {attempt} failed with error: {type(ex).__name__}: {ex}"
+                    f"Attempt {attempt} failed with error",
                 )
                 if attempt == max_attempts - 1:
                     raise
@@ -189,6 +207,8 @@ async def get_transcription_youtube(video_url: str):
                 logger.info(f"Waiting {delay} seconds before retry...")
                 await asyncio.sleep(delay)
 
+            else:
+                return full_transcript
     return ""
 
 
@@ -207,7 +227,7 @@ async def _handle_cookie_error(video_url: str):
             str(cookie_path),
         ]
         logger.info(
-            f"Cookies extracted to {cookie_path}. Will retry with cookies file."
+            f"Cookies extracted to {cookie_path}. Retry with cookies file.",
         )
-    except Exception as ex:
-        logger.exception(f"Cookie extraction failed: {ex}")
+    except Exception:
+        logger.exception("Cookie extraction failed")
