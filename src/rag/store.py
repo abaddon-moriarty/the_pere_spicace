@@ -99,7 +99,7 @@ class VaultStore:
 if __name__ == "__main__":
     logger.info("Running VaultStore in standalone mode")
     chunks = chunker(note_name="./src/rag/test.txt")
-    embeddings = embedder([chunk["content"] for chunk in chunks])
+    embeddings = embedder([chunk["content"] for chunk in chunks if chunks])
 
     store = VaultStore(persist_path="./chroma_db")
     store.index_file(

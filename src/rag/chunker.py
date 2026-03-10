@@ -9,10 +9,11 @@ import frontmatter
 from rag.embedder import embedder
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 
-def chunker(note_name: str) -> list[dict]:
+def chunker(note_name: str) -> list[dict] | None:
     """
     This function reads a markdown file with YAML frontmatter, extracts
     the content, and splits it into chunks organized by heading hierarchy.
@@ -31,7 +32,6 @@ def chunker(note_name: str) -> list[dict]:
 
     Raises:
         FileNotFoundError: If the note file does not exist
-        frontmatter.ParserError: If the frontmatter cannot be parsed
 
     Notes:
         - Processes only the first 50 sections of the document
@@ -51,77 +51,84 @@ def chunker(note_name: str) -> list[dict]:
     except FileNotFoundError:
         logger.exception(f"File not found: {note_name}")
         raise
-    except frontmatter.ParserError:
-        logger.exception(f"Failed to parse frontmatter in {note_name}")
-        raise
+    except Exception:
+        logger.exception("Could not chunk the text(s)")
+    else:
+        sections = re.split(r"(\#+.*)", body)
+        logger.debug(
+            f"Split document into:\
+                \n{len(sections)} raw sections (processing first 50)",
+        )
 
-    sections = re.split(r"(\#+.*)", body)
-    logger.info(
-        f"Split document into {len(sections)}\
-            raw sections (processing first 50)",
-    )
+        chunks = []
+        previous_section = ""
+        current_heading = ""
 
-    chunks = []
-    previous_section = ""
-    current_heading = ""
-
-    for section in sections:
-        if not section:
-            continue
-
-        # CASE 1: Section is a heading line (starts with #)
-        if re.match(r"#+.*", section):
-            current_heading = section.strip()
-            logger.debug(f"Heading found: {current_heading}")
-            previous_section = section.strip()[-200:]
-            continue
-
-        # CASE 2: Section is content
-        # If content is too long, split into smaller paragraphs
-        if len(section) > 2000:
-            paragraphs = section.split("\n\n")
-            logger.debug(
-                f"Large section ({len(section)} chars) split into\
-                    {len(paragraphs)} paragraphs",
-            )
-        else:
-            paragraphs = [section]
-
-        for para in paragraphs:
-            para = para.strip()
-            if not para or len(para) <= 50:
-                logger.debug(f"Skipping short paragraph ({len(para)} chars)")
+        for section in sections:
+            if not section:
                 continue
 
-            chunk = {
-                "heading": current_heading,
-                "content": f"{previous_section}\n{para}",
-                "source": note_name,
-            }
-            chunks.append(chunk)
-            logger.debug(
-                f"Created chunk under heading '{current_heading}'\
-                    with {len(chunk['content'])} chars",
-            )
+            # CASE 1: Section is a heading line (starts with #)
+            if re.match(r"#+.*", section):
+                current_heading = section.strip()
+                logger.debug(f"Heading found: {current_heading}")
+                previous_section = section.strip()[-200:]
+                continue
 
-            # Update previous_section with the end of this paragraph
-            previous_section = para[-200:]
+            # CASE 2: Section is content
+            # If content is too long,
+            # split into smaller paragraphs on double newlines
+            if len(section) > 2000:
+                paragraphs = section.split("\n\n")
+                logger.debug(
+                    f"Large section ({len(section)} chars).\
+                        \nSplit into {len(paragraphs)} paragraphs",
+                )
+            else:
+                paragraphs = [section]
 
-    for idx, chunk in enumerate(chunks):
-        chunk["index"] = idx
+            for para in paragraphs:
+                para = para.strip()
+                if not para or len(para) <= 50:
+                    logger.debug(
+                        f"Skipping short paragraph (length {len(para)})",
+                    )
+                    continue
 
-    logger.info(
-        f"Chunking complete. Created {len(chunks)} chunks for {note_name}",
-    )
-    return chunks
+                if previous_section:
+                    content = f"{previous_section}\n{para}"
+                else:
+                    content = para
+
+                chunk = {
+                    "heading": current_heading,
+                    "content": content,
+                    "source": note_name,
+                }
+                chunks.append(chunk)
+                logger.debug(
+                    f"Created chunk under heading '{current_heading}'\
+                            \n Length of {len(content)} chars",
+                )
+
+                # Update previous_section with the end of this paragraph
+                previous_section = para[-200:]
+
+        for idx, chunk in enumerate(chunks):
+            chunk["index"] = idx
+
+        logger.info(
+            f"Chunking complete. Created {len(chunks)} chunks for {note_name}",
+        )
+        return chunks
 
 
 if __name__ in "__main__":
     logger.info("Running chunker in standalone mode")
     chunks = chunker(note_name="./src/rag/test.txt")
     for chunk in chunks:
-        print(chunk["content"])
+        logger.debug(chunk["content"])
 
     embeddings = embedder([chunk["content"] for chunk in chunks])
     for embedding in embeddings:
-        print(embedding[:50])
+        logger.debug(embedding[:50])
