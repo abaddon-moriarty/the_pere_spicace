@@ -1,0 +1,57 @@
+You are enriching an Obsidian knowledge base with content from an educational transcript.
+
+
+CONCEPTS EXTRACTED FROM THE TRANSCRIPT:
+{concepts}
+
+EXISTING VAULT NOTES (title, tags, and first 300 characters):
+{vault_map}
+
+FULL TRANSCRIPT:
+{transcript}
+
+Task: Produce a structured enrichment plan. For each concept, decide:
+1. Does an existing note already cover this well? → add to "skipped"
+2. Does an existing note cover it partially, and the transcript adds new depth? → add to "updates"
+3. Does no note exist for this concept at all? → add to "new_notes"
+
+Rules:
+- Only suggest an update if the transcript adds at least 2-3 sentences of genuinely new information not already present in the note's snippet.
+- For "content_to_append": write a 2-3 sentence placeholder summary of what should be added, in clean prose. This is a draft — it will be refined later.
+- For "confidence": use "high" if the match between concept and note is unambiguous, "medium" if you are inferring.
+- For "new_notes": only create a note if the concept is substantive enough to warrant its own dedicated note, not just a mention inside another.
+- Prefer updating existing notes over creating new ones.
+- Do not invent content. If the transcript does not explain a concept in enough depth, put it in "skipped".
+- Do not invent sources. If the vault doesn't cover a concept, do not refer to it, it's a new concepts that will require a new note.
+
+Critical: You may only reference notes that appear verbatim in the EXISTING VAULT NOTES list above. If no matching note exists, use "new_notes" or "skipped". Never invent a path, or content of the notes.
+
+
+Return this exact JSON structure and nothing else:
+{{
+  "updates": [
+    {{
+      "note_path": "relative/path/to/Note.md",
+      "content_to_append": "Brief 2-3 sentence summary on a single line."
+      "rationale": "Why this note, why this content",
+      "confidence": "high"
+    }}
+  ],
+  "new_notes": [
+    {{
+      "title": "Note Title",
+      "folder": "Folder/Subfolder",
+      "initial_content": "Draft of the note content...",
+      "tags": ["tag1", "tag2"]
+    }}
+  ],
+  "skipped": [
+    {{
+      "concept": "Concept Name",
+      "reason": "Already well-covered in X.md"
+      "sources" ["file_name from vault containing the skipped concept.md", "Other file covering the same concept.md"],
+    }}
+  ]
+}}
+
+
