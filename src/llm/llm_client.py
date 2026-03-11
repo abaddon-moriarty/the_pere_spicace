@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import logging
@@ -11,10 +12,10 @@ import ollama
 
 from dotenv import load_dotenv
 
-from src.obsidian.vault_structure import build_vault_map
+from obsidian.vault_structure import note_filter, build_vault_map
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class LLMClient:
@@ -66,8 +67,10 @@ class LLMClient:
                     or "system" in prompt_path.name
                 ):
                     context_template = prompt_path.read_text(encoding="utf-8")
+                    logger.info(f"Context prompt found at {prompt_path}")
                 elif "user" in prompt_path.name:
                     user_template = prompt_path.read_text(encoding="utf-8")
+                    logger.info(f"User prompt found at {prompt_path}")
             if user_template is None:
                 msg = f"No user prompt found for {name}"
                 raise ValueError(msg)
@@ -79,6 +82,61 @@ class LLMClient:
             raise FileNotFoundError(msg)
         template = prompt_path.read_text(encoding="utf-8")
         return None, template.format(**kwargs)
+
+    def _parse_json_response(self, raw_content: str) -> dict | None:
+        """
+        Extract JSON from LLM response content.
+
+        Handles both response wrapped in ```json``` code fences and plain JSON.
+        Returns parsed JSON or None if parsing fails.
+        """
+
+        def sanitize_json_string(raw: str) -> str:
+            # Replace literal newlines inside JSON strings with \n escape
+            return re.sub(
+                r'"(?:[^"\\]|\\.)*"',
+                lambda match: match.group(0)
+                .replace("\n", "\\n")
+                .replace("\r", "\\r"),
+                raw,
+                flags=re.DOTALL,
+            )
+
+        match = re.search(
+            r"```(?:json)?\s*(?P<json>.*?)\s*```",
+            str(raw_content),
+        )
+        if match:
+            json_match = (
+                (match.group("json")).replace("\n", "").replace("  ", " ")
+            )
+        else:
+            json_match = raw_content.replace("\n", "").replace("  ", " ")
+
+        logger.info(json_match)
+
+        start = json_match.find("{")
+        if start == -1:
+            start = json_match.find("[")
+        if start == -1:
+            logger.warning("No JSON object/array found in response")
+            return None
+
+        end = json_match.find("}")
+        if end == -1 or end < start:
+            end = json_match.find("]")
+        if end == -1 or end < start:
+            logger.warning("No matching closing bracket found")
+            return None
+
+        json_str = json_match[start : end + 1]
+        json_str = sanitize_json_string(json_str)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            logger.exception("Failed to parse JSON")
+            logger.debug(f"Raw output: {json_str}")
+            return None
 
     def chat(self, prompt: str) -> str:
         """
@@ -92,6 +150,7 @@ class LLMClient:
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
         )
+
         return response["message"]["content"]
 
     def topic_extraction(self, transcript: str, prompt_name: str) -> list:
@@ -112,18 +171,21 @@ class LLMClient:
             name=prompt_name,
             transcript=transcript,
         )
+        logger.info(
+            f"Prompt Generated, getting ready to ask {self.model_name}",
+        )
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user})
-        response = ollama.chat(model=self.model_name, messages=messages)
-        return json.loads(response["message"]["content"])
 
-        response = ollama.chat(
-            model=self.model_name,
-            messages=[{"role": "user", "content": user}],
+        logger.info(f"{self.model_name} is extracting topics...")
+        response = ollama.chat(model=self.model_name, messages=messages)
+        # logger.debug(response)
+        parsed_response = self._parse_json_response(
+            response["message"]["content"],
         )
-        return json.loads(response["message"]["content"])
+        return parsed_response
 
     def generate_summary(self, transcript: str) -> str:
         """Generate a summary from the transcript."""
@@ -159,18 +221,32 @@ class LLMClient:
                 concepts (list): List of extracted concepts to map.
                 vault_map (dict): Dictionary mapping concepts to vault entries.
         """
+
         system, user = self._load_prompt(
             name=prompt_name,
             transcript=transcript,
             concepts=concepts,
             vault_map=vault_map,
         )
+        logger.info(
+            f"Prompt Generated, getting ready to ask {self.model_name}",
+        )
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user})
+        logger.info(
+            f"{self.model_name} is mapping the concepts to your vault.",
+        )
         response = ollama.chat(model=self.model_name, messages=messages)
-        return json.loads(response["message"]["content"])
+        raw_content = response["message"]["content"]
+        logger.info(f"Raw mapping response: {raw_content}")
+
+
+        return self._parse_json_response(raw_content)
+
+    def mapping_review(vault_mapping, propositions):
+        return
 
 
 if __name__ == "__main__":
@@ -185,7 +261,8 @@ if __name__ == "__main__":
     client = LLMClient(model, prompts_dir)
     logger.info(f"LLM client initialized with model: {model}")
 
-    with Path("./test.txt").open(encoding="utf-8") as f:
+    url = "./Is RAG Still Needed? Choosing the Best Approach for LLMs.txt"
+    with Path(url).open(encoding="utf-8") as f:
         transcript_text = f.read()
         vault_map = build_vault_map()
         logger.info("Reading transcription")
@@ -193,10 +270,10 @@ if __name__ == "__main__":
             transcript=transcript_text,
             prompt_name="topic_extraction",
         )
-        logger.info(
-            f"Concepts extracted. Found {len(concepts)} concepts\n\
-                Among those: {concepts[:3]}",
-        )
+        logger.info(f"Concepts extracted. Found {len(concepts)} concepts")
+        if concepts:
+            logger.info(f"First three: {concepts[:3]}")
+
         mapping = client.vault_enhancement_mapping(
             transcript=transcript_text,
             concepts=concepts,
@@ -204,3 +281,12 @@ if __name__ == "__main__":
             prompt_name="vault_mapper",
         )
         logger.info(mapping)
+
+        # transcript → topic extraction → concepts
+        # concepts → ChromaDB query → top N relevant notes (no filtering)
+        # top N notes + concepts + transcript → mapping LLM → plan
+
+        # plan → note_filter removes notes already containing the URL
+        # filtered plan → execute (append content to notes)
+        logger.info("Tring to apply the note filter")
+        mapping = note_filter(mapping, url)

@@ -10,9 +10,10 @@ import frontmatter
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
-def build_vault_map():
+def build_vault_map() -> None | dict:
     """
     Build a map of markdown files in an Obsidian vault with metadata.
 
@@ -84,21 +85,54 @@ def build_vault_map():
 
 
 def note_filter(vault_map: dict, _url: str) -> dict:
-    # Gets the vault map, the video url and removes any note that already
-    # contains the url as a source.
+    # Gets the vault map, the video url
+    # removes any note that already contains the url as a source.
     # limits a tiny bit the length to process.
+    keys_to_remove = []
     for name, metadata in vault_map.items():
-        logger.info("%s: %s", name, metadata)
+        sources = metadata.get("sources")
+        if sources is None:
+            continue
+
+        # Check if the URL is present in the sources
+        found = False
+        if isinstance(sources, list):
+            for item in sources:
+                if isinstance(item, str) and _url in item:
+                    found = True
+                    break
+        elif isinstance(sources, str) and _url in sources:
+            found = True
+
+        if found:
+            keys_to_remove.append(name)
+
+    # Remove the identified entries
+    for key in keys_to_remove:
+        logger.info(
+            f"Removing {key}. The video already contributed to it.",
+        )
+        del vault_map[key]
+
     return vault_map
 
 
+def path_validation(vault_mapping, path):
+    paths = vault_mapping["updates"]
+    for note_path in paths:
+        logger.debug(note_path)
+        if not Path.exists(note_path):
+            logger.error(f"{note_path} does not exist.")
+    return
+
+
 if __name__ == "__main__":
+    logger.info(msg="Starting the vault map")
     load_dotenv()
     vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
     if vault_path:
         vault_data = build_vault_map()
         # Now you can use vault_data, e.g. print number of files
-        logger.info(f"Found {len(vault_data)} markdown files.")
 
         note_filter(
             vault_map=vault_data,
