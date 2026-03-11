@@ -10,7 +10,7 @@ Rules:
 - Aim for 5 to 15 concepts. If the video is genuinely narrow, fewer is correct. Do not pad the list.
 - Ignore meta-content entirely: course introductions, speaker introductions, calls to subscribe or like, chapter transitions, jokes and asides.
 
-Return a JSON array of strings only. Example of correct output:
+Return a valid JSON array of strings only. Example of correct output:
 ["Supervised Learning", "Loss Function", "Gradient Descent", "Learning Rate"]
 
 TRANSCRIPT:

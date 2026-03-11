@@ -6,9 +6,9 @@ import sqlite3
 
 from typing import Any
 
-from src.database.sqlite_memory import initialise_database
-from src.obsidian.vault_structure import build_vault_map
-from src.transcription_client.youtube_transcript_client import (
+from database.sqlite_memory import initialise_database
+from obsidian.vault_structure import build_vault_map
+from transcription_client.youtube_transcript_client import (
     get_transcription_youtube,
 )
 
@@ -41,11 +41,11 @@ def check_retrieved_transcriptions(url: str) -> list[Any] | None:
             "SELECT transcript FROM TRANSCRIPTIONS WHERE url = ?;",
             (url,),
         ).fetchall()
-        if result:
-            return result
     except Exception:
-        logger.exception(Exception)
+        logger.exception("Database error")
         return None
+    else:
+        return result if result else []  # return empty list if no rows
     finally:
         sqlite_connection.close()
 
@@ -54,7 +54,7 @@ async def async_main(args):
     youtube_url = validate_youtube_url(args)
 
     transcript = check_retrieved_transcriptions(youtube_url)
-    if check_retrieved_transcriptions(youtube_url):
+    if transcript:
         logger.info("Video already transcribed, pulling the transcription.")
         return transcript
     logger.info("Retrieving the transcription...")
@@ -62,7 +62,7 @@ async def async_main(args):
 
 
 def main(args):
-    vault_map = build_vault_map()
+    _ = build_vault_map()  # vault_map currently unused, will be used later
 
     initialise_database()
 
@@ -71,6 +71,6 @@ def main(args):
 
     logger.info(f"Got transcript: {video_data}")
 
-    
+
 if __name__ == "__main__":
     main(sys.argv)

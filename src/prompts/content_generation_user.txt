@@ -1,0 +1,31 @@
+You are adding new content to an existing Obsidian note. The transcript excerpt you are working from is raw auto-generated captions: it contains filler words, false starts, repetitions, and informal spoken language. Extract only the technical substance and rewrite it in clean written prose — do not reproduce the spoken register.
+
+EXISTING NOTE TITLE:
+{note_title}
+
+EXISTING NOTE CONTENT:
+{existing_note_content}
+
+CONCEPT TO COVER:
+{concept_name}
+
+RELEVANT TRANSCRIPT EXCERPT:
+{transcript_excerpt}
+
+LANGUAGE INSTRUCTION:
+The existing note is written in {note_language}. Write the new content in the same language.
+If the existing note has no content yet, detect the language of the transcript and write in that language.
+
+Task:
+Write a self-contained markdown block that adds what the transcript explains about "{concept_name}" to this note.
+
+Rules:
+- Read the existing note content carefully. Do not restate, paraphrase, or reintroduce anything already present.
+- Do not start with a heading. Do not end with a heading. Write body content only.
+- Write as if you are the original author of the note: match the level of detail, the formatting style, and the vocabulary already present.
+- Be concise: 5 to 10 sentences is the target. Only exceed this if the concept genuinely requires it.
+- If the transcript provides a concrete example or formula not already in the note, include it.
+- Do not reference the video, the course, the speaker, or the fact that this came from a transcript. Write the knowledge as a direct statement of fact.
+- If the transcript excerpt does not contain enough substance to write at least two meaningful new sentences that are not already in the note, output the single word: SKIP
+
+Output the markdown content directly, or SKIP.

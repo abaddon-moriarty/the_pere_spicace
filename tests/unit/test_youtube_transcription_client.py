@@ -4,7 +4,6 @@ import logging
 import secrets
 
 
-from typing import Any, cast
 from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
@@ -18,29 +17,44 @@ logging.basicConfig(level=logging.INFO)
 
 
 class CookieDecryptionError(Exception):
-    pass
+    """Raised when browser cookies cannot be decrypted."""
 
 
 class YouTubeRateLimitError(Exception):
-    pass
+    """Raised when YouTube returns a 429 rate limit error."""
 
 
 class MCPError(Exception):
-    pass
+    """Raised when the MCP tool returns an error."""
 
 
 def _raise_mcp_error(error_text: str) -> None:
+    """
+    Analyze MCP error text and raise the appropriate exception.
+
+    Args:
+        error_text (str): The error message from the MCP tool.
+
+    Raises:
+        CookieDecryptionError:
+            If the error indicates cookie decryption failure.
+        YouTubeRateLimitError:
+            If the error indicates a rate limit (429).
+        MCPError: For any other MCP error.
+    """
     if "cannot decrypt v11 cookies: no key found" in error_text:
         msg = f"Cookies could not be decrypted: {error_text}"
         raise CookieDecryptionError(msg)
+
     if "429" in error_text or "Too Many Requests" in error_text:
         msg = f"YouTube rate limit: {error_text}"
         raise YouTubeRateLimitError(msg)
+
     msg = f"MCP error: {error_text}"
     raise MCPError(msg)
 
 
-server_configs: list[dict[str, Any]] = [
+server_configs = [
     {
         "name": "brave",
         "params": StdioServerParameters(
@@ -63,21 +77,11 @@ server_configs: list[dict[str, Any]] = [
                 "--",
                 "yt-dlp",
                 "--cookies",
-                "./src/utils/cookies.txt",
+                "./utils/cookies.txt",
             ],
         ),
     },
 ]
-
-
-async def display_tools(session: ClientSession):
-    """Display available tools with non-clanker eyes"""
-    tools_response = await session.list_tools()
-    logger.info("=== Available Tools ===")
-    for tool in tools_response.tools:
-        logger.info(f"Tool: {tool.name}")
-        if tool.description:
-            logger.info(f"    {tool.description}")
 
 
 async def get_transcription_youtube(video_url: str):
@@ -87,9 +91,8 @@ async def get_transcription_youtube(video_url: str):
     """
     for config in server_configs:
         logger.info(f"Trying with {config['name']}...")
-        # Cast to StdioServerParameters to help mypy
-        server_params = cast("StdioServerParameters", config["params"])
-        max_attempts = 2
+        server_params = config["params"]
+        max_attempts = 2  # per configuration
 
         for attempt in range(max_attempts):
             logger.warning(
@@ -101,8 +104,6 @@ async def get_transcription_youtube(video_url: str):
                 async with stdio_client(server_params) as (read, write):
                     async with ClientSession(read, write) as session:
                         await session.initialize()
-
-                        await display_tools(session)
 
                         transcription_result = await session.call_tool(
                             name="ytdlp_download_transcript",
@@ -118,6 +119,9 @@ async def get_transcription_youtube(video_url: str):
                                 for content in transcription_result.content:
                                     if content.type == "text":
                                         error_text = content.text
+
+                            # Use the helper function to raise
+                            # the appropriate exception
                             _raise_mcp_error(error_text)
 
                         full_transcript = ""
@@ -138,8 +142,6 @@ async def get_transcription_youtube(video_url: str):
                                     try:
                                         data = json.loads(content.text)
                                         title = data.get("title", "")
-                                        # assuming the first text content
-                                        # contains the metadata
                                         break
                                     except json.JSONDecodeError:
                                         logger.exception(
@@ -216,12 +218,7 @@ async def _handle_cookie_error(video_url: str):
         get_brave_cookies(video_url)
         cookie_path = Path("cookies.txt").resolve()
         # Update the cookies_file config
-        # cast to StdioServerParameters
-        cookies_config = cast(
-            "StdioServerParameters",
-            server_configs[1]["params"],
-        )
-        cookies_config.args = [
+        server_configs[1]["params"].args = [
             "-y",
             "@kevinwatt/yt-dlp-mcp",
             "--",

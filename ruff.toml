@@ -46,6 +46,8 @@ lint.select = [
 
 lint.ignore = [
     "G004",
+    "S101",
+    "SLF001"
 ]
 
 [lint.isort]

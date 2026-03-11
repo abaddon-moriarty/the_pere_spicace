@@ -1,110 +1,111 @@
-"""
-Pytest configuration and fixtures.
-"""
-
-import json
+import sqlite3
+import tempfile
 
 
-from unittest.mock import patch, AsyncMock, MagicMock
+from pathlib import Path
 
 import pytest
 
 
-# Mock classes for MCP types
-class TextContent:
-    def __init__(self, type, text):
-        self.type = type
-        self.text = text
-
-
-class CallToolResult:
-    def __init__(self, content, isError=False):
-        self.content = content
-        self.isError = isError
-
-
-class Tool:
-    def __init__(self, name, description=None, inputSchema=None):
-        self.name = name
-        self.description = description
-        self.inputSchema = inputSchema
-
-
-class ListToolsResult:
-    def __init__(self, tools):
-        self.tools = tools
+@pytest.fixture
+def temp_db_path():
+    """Provide a temporary database file path."""
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    yield db_path
+    path = Path(db_path)
+    if path.exists():
+        path.unlink()
 
 
 @pytest.fixture
-def mock_mcp_response():
-    """Fixture for creating mock MCP responses."""
-
-    def _create_response(
-        transcript_text, title="Test Video", next_cursor=None, is_error=False
-    ):
-        response_data = {
-            "title": title,
-            "transcript": transcript_text,
-            "next_cursor": next_cursor,
-        }
-
-        content = [TextContent(type="text", text=json.dumps(response_data))]
-        return CallToolResult(content=content, isError=is_error)
-
-    return _create_response
+def temp_vault_dir(tmp_path):
+    """Create a temporary Obsidian vault with sample markdown files."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    # Create a sample note
+    note = vault / "note.md"
+    note.write_text("""---
+title: Test Note
+tags: [python, testing]
+last_enriched: 2023-01-01
+domain: development
+sources: https://example.com
+---
+This is the content of the test note.""")
+    # Create a note in a subdirectory (excluded from Templates)
+    sub = vault / "sub"
+    sub.mkdir()
+    (sub / "other.md").write_text("""---
+title: Other
+tags: []
+---
+Some content.""")
+    # Create a Templates directory (should be ignored)
+    templates = vault / "Templates"
+    templates.mkdir()
+    (templates / "template.md").write_text("Ignored template.")
+    return str(vault)
 
 
 @pytest.fixture
-def mock_database():
-    """Mock the database to avoid file I/O during tests."""
-    with patch("sqlite3.connect") as mock_connect:
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-
-        # Default behavior: table exists, no transcripts found
-        mock_cursor.fetchone.return_value = [1]  # Table exists
-        mock_cursor.fetchall.return_value = []  # No transcripts
-        mock_cursor.execute.return_value = mock_cursor
-
-        mock_conn.cursor.return_value = mock_cursor
-        mock_conn.commit.return_value = None
-        mock_conn.close.return_value = None
-
-        mock_connect.return_value = mock_conn
-
-        yield mock_conn
+def mock_env_vars(monkeypatch, temp_vault_dir):
+    """Set mock environment variables for testing."""
+    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", temp_vault_dir)
+    monkeypatch.setenv("OLLAMA_MODEL", "test-model")
+    monkeypatch.setenv("PROMPTS_DIR", str(Path(temp_vault_dir) / "prompts"))
+    return monkeypatch
 
 
-@pytest.fixture(autouse=True)
-def mock_transcription_client():
-    """Mock the entire transcription client to avoid real API calls."""
-    with (
-        patch(
-            "src.transcription_client.youtube_transcript_client.stdio_client"
-        ) as mock_stdio,
-        patch(
-            "src.transcription_client.youtube_transcript_client.ClientSession"
-        ) as mock_client,
-    ):
-        # Create a mock session
-        mock_session = AsyncMock()
-        mock_session.initialize = AsyncMock()
-        mock_session.list_tools = AsyncMock()
+@pytest.fixture
+def sample_transcript():
+    """Return a sample transcript text."""
+    return "This is a sample YouTube transcript.\
+    It contains multiple sentences."
 
-        # Mock successful response
-        mock_content = TextContent(
-            type="text",
-            text='{"title": "Test Video", "transcript": "Mock transcript text", "next_cursor": null}',
-        )
 
-        mock_result = CallToolResult(content=[mock_content], isError=False)
-        mock_session.call_tool = AsyncMock(return_value=mock_result)
+@pytest.fixture
+def sample_url():
+    """Return a sample YouTube URL."""
+    return "https://www.youtube.com/watch?v=abc123"
 
-        # Setup context manager mocks
-        mock_stdio.return_value.__aenter__.return_value = (
-            MagicMock(),
-            MagicMock(),
-        )
-        mock_client.return_value.__aenter__.return_value = mock_session
 
-        yield mock_session
+@pytest.fixture
+def mock_sqlite_connection(mocker):
+    """Mock sqlite3.connect and cursor for database tests."""
+    mock_conn = mocker.MagicMock(spec=sqlite3.Connection)
+    mock_cursor = mocker.MagicMock(spec=sqlite3.Cursor)
+    mock_conn.cursor.return_value = mock_cursor
+    mocker.patch("sqlite3.connect", return_value=mock_conn)
+    return mock_conn, mock_cursor
+
+
+@pytest.fixture
+def mock_mcp_session(mocker):
+    """Mock the MCP client session for transcription tests."""
+    mock_session = mocker.AsyncMock()
+    mock_session.initialize = mocker.AsyncMock()
+    mock_session.list_tools = mocker.AsyncMock()
+    mock_session.call_tool = mocker.AsyncMock()
+    return mock_session
+
+
+@pytest.fixture
+def mock_stdio_client(mocker, mock_mcp_session):
+    """Mock stdio_client context manager to return mock session."""
+    mock_read = mocker.MagicMock()
+    mock_write = mocker.MagicMock()
+    mock_cm = mocker.AsyncMock()
+    mock_cm.__aenter__.return_value = (mock_read, mock_write)
+    mock_stdio = mocker.patch(
+        "transcription_client.youtube_transcription_client.stdio_client",
+    )
+    mock_stdio.return_value = mock_cm
+
+    mock_session_cm = mocker.AsyncMock()
+    mock_session_cm.__aenter__.return_value = mock_mcp_session
+    mocker.patch(
+        "transcription_client.youtube_transcription_client.ClientSession",
+        return_value=mock_session_cm,
+    )
+    return mock_stdio
