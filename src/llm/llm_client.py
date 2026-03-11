@@ -153,7 +153,11 @@ class LLMClient:
 
         return response["message"]["content"]
 
-    def topic_extraction(self, transcript: str, prompt_name: str) -> list:
+    def topic_extraction(
+        self,
+        transcript: str,
+        prompt_name: str,
+    ) -> dict | list | None:
         """
         Extract main distinct concepts from a transcript.
         Loads the specified prompt template and sends it with the transcript
@@ -270,9 +274,16 @@ if __name__ == "__main__":
             transcript=transcript_text,
             prompt_name="topic_extraction",
         )
+        if not isinstance(concepts, list):
+            logger.error("Topic extraction returned unexpected type. Exiting.")
+            sys.exit(1)
         logger.info(f"Concepts extracted. Found {len(concepts)} concepts")
         if concepts:
             logger.info(f"First three: {concepts[:3]}")
+
+        if vault_map is None:
+            logger.error("Vault map could not be built. Exiting.")
+            sys.exit(1)
 
         mapping = client.vault_enhancement_mapping(
             transcript=transcript_text,
@@ -280,6 +291,7 @@ if __name__ == "__main__":
             vault_map=vault_map,
             prompt_name="vault_mapper",
         )
+
         logger.info(mapping)
 
         # transcript → topic extraction → concepts

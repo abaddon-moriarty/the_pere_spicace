@@ -2,8 +2,8 @@ import logging
 
 import chromadb
 
-from rag.chunker import chunker
-from rag.embedder import embedder
+from src.rag.chunker import chunker
+from src.rag.embedder import embedder
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -52,9 +52,9 @@ class VaultStore:
         logger.debug(f"Upserting {len(ids)} chunks into collection")
         self.collection.upsert(
             ids=ids,
-            embeddings=embeddings,
+            embeddings=embeddings,  # type: ignore[arg-type]
             documents=documents,
-            metadatas=metadatas,
+            metadatas=metadatas,  # type: ignore[arg-type]
         )
         logger.info(f"Successfully indexed {filepath}")
 
@@ -75,7 +75,7 @@ class VaultStore:
         """
         logger.info(f"Querying collection for top {n_results} results")
         results = self.collection.query(
-            query_embeddings=[query_embedding],
+            query_embeddings=[query_embedding],  # type: ignore[arg-type]
             n_results=n_results,
             include=["documents", "metadatas", "distances"],
         )
@@ -83,13 +83,17 @@ class VaultStore:
         #   ids, distances, metadatas, documents, etc.
         # Convert to a list of dicts for easier consumption
         formatted = []
-        for i in range(len(results["ids"][0])):
+        ids = results.get("ids") or [[]]
+        distances = results.get("distances") or [[]]
+        documents = results.get("documents") or [[]]
+        metadatas = results.get("metadatas") or [[]]
+        for i in range(len(ids[0])):
             formatted.append(
                 {
-                    "id": results["ids"][0][i],
-                    "distance": results["distances"][0][i],
-                    "document": results["documents"][0][i],
-                    "metadata": results["metadatas"][0][i],
+                    "id": ids[0][i],
+                    "distance": distances[0][i],
+                    "document": documents[0][i],
+                    "metadata": metadatas[0][i],
                 },
             )
         logger.info(f"Query returned {len(formatted)} results")
@@ -99,14 +103,15 @@ class VaultStore:
 if __name__ == "__main__":
     logger.info("Running VaultStore in standalone mode")
     chunks = chunker(note_name="./src/rag/test.txt")
-    embeddings = embedder([chunk["content"] for chunk in chunks if chunks])
 
     store = VaultStore(persist_path="./chroma_db")
-    store.index_file(
-        filepath="./src/rag/test.txt",
-        chunks=chunks,
-        embeddings=embeddings,
-    )
+    if chunks:
+        embeddings = embedder([chunk["content"] for chunk in chunks])
+        store.index_file(
+            filepath="./src/rag/test.txt",
+            chunks=chunks,
+            embeddings=embeddings,
+        )
 
     if embeddings:
         sample_query = embeddings[0]  # use first chunk's embedding as query

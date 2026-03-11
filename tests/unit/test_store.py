@@ -5,12 +5,12 @@ import unittest
 
 from unittest.mock import patch, MagicMock
 
-from rag.store import VaultStore
+from src.rag.store import VaultStore
 
 # ── Mocked unit tests (fast, no real ChromaDB) ───────────────────────────────
 
 
-@patch("src.rag.store.chromadb.PersistentClient")
+@patch("rag.store.chromadb.PersistentClient")
 def test_vault_store_init(mock_persistent_client):
     """VaultStore wires the client and collection correctly."""
     mock_client = MagicMock()
@@ -28,7 +28,7 @@ def test_vault_store_init(mock_persistent_client):
     assert store.collection == mock_collection
 
 
-@patch("src.rag.store.chromadb.PersistentClient")
+@patch("rag.store.chromadb.PersistentClient")
 def test_index_file_placeholder(mock_persistent_client):
     """index_file exists and does not raise."""
     mock_persistent_client.return_value = MagicMock()
@@ -36,7 +36,7 @@ def test_index_file_placeholder(mock_persistent_client):
     store.index_file("file.md", [], [])
 
 
-@patch("src.rag.store.chromadb.PersistentClient")
+@patch("rag.store.chromadb.PersistentClient")
 def test_delete_file_placeholder(mock_persistent_client):
     """delete_file exists and does not raise."""
     mock_persistent_client.return_value = MagicMock()
@@ -44,7 +44,7 @@ def test_delete_file_placeholder(mock_persistent_client):
     store.delete_file("file.md")
 
 
-@patch("src.rag.store.chromadb.PersistentClient")
+@patch("rag.store.chromadb.PersistentClient")
 def test_query_placeholder(mock_persistent_client):
     """query exists and does not raise."""
     mock_persistent_client.return_value = MagicMock()

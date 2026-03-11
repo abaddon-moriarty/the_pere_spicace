@@ -6,9 +6,9 @@ import sqlite3
 
 from typing import Any
 
-from src.database.sqlite_memory import initialise_database
-from src.obsidian.vault_structure import build_vault_map
-from src.transcription_client.youtube_transcript_client import (
+from database.sqlite_memory import initialise_database
+from obsidian.vault_structure import build_vault_map
+from transcription_client.youtube_transcript_client import (
     get_transcription_youtube,
 )
 

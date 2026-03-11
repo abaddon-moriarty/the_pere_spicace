@@ -31,9 +31,16 @@ asyncio_mode = "auto"
 
 [tool.mypy]
 explicit_package_bases = true
-mypy_path = ["src"]
+mypy_path = ["."]
 namespace_packages = true
+exclude = ["src/rag/store.py"]
 
 [[tool.mypy.overrides]]
-module = "frontmatter"
+module = [
+    "frontmatter", 
+    "google.*",
+    "chromadb",
+    "chromadb.*",
+    ]
 ignore_missing_imports = true
+

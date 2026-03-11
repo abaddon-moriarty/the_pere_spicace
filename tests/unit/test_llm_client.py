@@ -40,7 +40,7 @@ def test_load_prompt_file_not_found(llm_client):
         llm_client._load_prompt("nonexistent")
 
 
-@patch("src.llm.llm_client.ollama.chat")
+@patch("llm.llm_client.ollama.chat")
 def test_chat(mock_ollama_chat, llm_client):
     mock_ollama_chat.return_value = {"message": {"content": "response text"}}
     result = llm_client.chat("Hello")
@@ -51,7 +51,7 @@ def test_chat(mock_ollama_chat, llm_client):
     assert result == "response text"
 
 
-@patch("src.llm.llm_client.ollama.chat")
+@patch("llm.llm_client.ollama.chat")
 def test_topic_extraction(mock_ollama_chat, llm_client, tmp_path):
     # Setup prompt file
     prompt_file = tmp_path / "prompts" / "topic.txt"
@@ -75,7 +75,7 @@ def test_topic_extraction(mock_ollama_chat, llm_client, tmp_path):
     assert result == ["topic1", "topic2"]
 
 
-@patch("src.llm.llm_client.ollama.chat")
+@patch("llm.llm_client.ollama.chat")
 def test_vault_enhancement_mapping(mock_ollama_chat, llm_client, tmp_path):
     # Setup context and user prompts
     (tmp_path / "prompts" / "vault_context.txt").write_text(

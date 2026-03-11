@@ -9,8 +9,8 @@ import pytest
 from src.utils.cookie_extractor import get_brave_cookies
 
 
-@patch("src.utils.cookie_extractor.Path.exists")
-@patch("src.utils.cookie_extractor.sqlite3.connect")
+@patch("utils.cookie_extractor.Path.exists")
+@patch("utils.cookie_extractor.sqlite3.connect")
 def test_get_brave_cookies_success(mock_connect, mock_exists, tmp_path):
     mock_exists.return_value = True
     mock_conn = MagicMock()
@@ -49,7 +49,7 @@ def test_get_brave_cookies_success(mock_connect, mock_exists, tmp_path):
     assert "abc123" in content
 
 
-@patch("src.utils.cookie_extractor.Path.exists")
+@patch("utils.cookie_extractor.Path.exists")
 def test_get_brave_cookies_db_not_found(mock_exists):
     mock_exists.return_value = False
     with pytest.raises(

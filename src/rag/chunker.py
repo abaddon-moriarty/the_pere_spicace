@@ -57,6 +57,7 @@ def chunker(note_name: str) -> list[dict] | None:
         raise
     except Exception:
         logger.exception("Could not chunk the text(s)")
+        return None
     else:
         sections = re.split(r"(\#+.*)", body)
         logger.debug(
@@ -92,17 +93,19 @@ def chunker(note_name: str) -> list[dict] | None:
                 paragraphs = [section]
 
             for para in paragraphs:
-                para = para.strip()
-                if not para or len(para) <= 50:
+                para_text = para.strip()
+                if not para_text or len(para_text) <= 50:
+                    continue
+                if not para_text or len(para_text) <= 50:
                     logger.debug(
-                        f"Skipping short paragraph (length {len(para)})",
+                        f"Skipping short paragraph (length {len(para_text)})",
                     )
                     continue
 
                 if previous_section:
-                    content = f"{previous_section}\n{para}"
+                    content = f"{previous_section}\n{para_text}"
                 else:
-                    content = para
+                    content = para_text
 
                 chunk = {
                     "heading": current_heading,
@@ -116,10 +119,10 @@ def chunker(note_name: str) -> list[dict] | None:
                 )
 
                 # Update previous_section with the end of this paragraph
-                previous_section = para[-200:]
+                previous_section = para_text[-200:]
 
         for idx, chunk in enumerate(chunks):
-            chunk["index"] = idx
+            chunk["index"] = str(idx)
 
         logger.info(
             f"Chunking complete. Created {len(chunks)} chunks for {note_name}",
@@ -130,9 +133,9 @@ def chunker(note_name: str) -> list[dict] | None:
 if __name__ in "__main__":
     logger.info("Running chunker in standalone mode")
     chunks = chunker(note_name="./src/rag/test.txt")
-    for chunk in chunks:
-        logger.debug(chunk["content"])
-
-    embeddings = embedder([chunk["content"] for chunk in chunks])
-    for embedding in embeddings:
-        logger.debug(embedding[:50])
+    if chunks:
+        for chunk in chunks:
+            logger.debug(chunk["content"])
+        embeddings = embedder([chunk["content"] for chunk in chunks])
+        for embedding in embeddings:
+            logger.debug(embedding[:50])

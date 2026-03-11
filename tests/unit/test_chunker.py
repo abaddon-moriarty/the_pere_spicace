@@ -84,7 +84,7 @@ title: Large Section Test
         """Test that chunk indices are sequential starting from 0."""
         chunks = chunker(sample_markdown_file)
         assert len(chunks) > 0, "Expected at least one chunk"
-        indices = [chunk["index"] for chunk in chunks]
+        indices = [int(chunk["index"]) for chunk in chunks]
         assert indices == list(range(len(chunks)))
 
     def test_source_field_matches_input(self, sample_markdown_file):
@@ -127,7 +127,7 @@ title: Large Section Test
         if len(chunks) > 1:
             assert "\n" in chunks[1]["content"]
 
-    @patch("src.rag.chunker.frontmatter.load")
+    @patch("rag.chunker.frontmatter.load")
     @patch("pathlib.Path.open", new_callable=mock_open, read_data="")
     def test_frontmatter_parse_error_handled(self, _mock_file, mock_load):
         mock_load.side_effect = yaml.YAMLError("Parser error")
@@ -147,7 +147,7 @@ title: Large Section Test
     )
     def test_chunker_no_frontmatter(self, _):
         """Content under 50 chars with no headings produces no chunks."""
-        with patch("src.rag.chunker.frontmatter.load") as mock_frontmatter:
+        with patch("rag.chunker.frontmatter.load") as mock_frontmatter:
             mock_post = MagicMock()
             mock_post.content = "Just plain text without headings."
             mock_frontmatter.return_value = mock_post

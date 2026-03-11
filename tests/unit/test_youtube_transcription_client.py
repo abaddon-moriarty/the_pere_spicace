@@ -77,7 +77,7 @@ server_configs = [
                 "--",
                 "yt-dlp",
                 "--cookies",
-                "./src/utils/cookies.txt",
+                "./utils/cookies.txt",
             ],
         ),
     },

@@ -98,14 +98,14 @@ def mock_stdio_client(mocker, mock_mcp_session):
     mock_cm = mocker.AsyncMock()
     mock_cm.__aenter__.return_value = (mock_read, mock_write)
     mock_stdio = mocker.patch(
-        "src.transcription_client.youtube_transcription_client.stdio_client",
+        "transcription_client.youtube_transcription_client.stdio_client",
     )
     mock_stdio.return_value = mock_cm
 
     mock_session_cm = mocker.AsyncMock()
     mock_session_cm.__aenter__.return_value = mock_mcp_session
     mocker.patch(
-        "src.transcription_client.youtube_transcription_client.ClientSession",
+        "transcription_client.youtube_transcription_client.ClientSession",
         return_value=mock_session_cm,
     )
     return mock_stdio

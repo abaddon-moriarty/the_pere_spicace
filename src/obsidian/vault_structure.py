@@ -41,6 +41,11 @@ def build_vault_map() -> None | dict:
     try:
         load_dotenv()
         vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+        if vault_path is None:
+            logger.warning(
+                "OBSIDIAN_VAULT_PATH not set - vault features disabled.",
+            )
+            return None
         logger.info("Building the Vault map.")
 
         vault_map = {}
@@ -133,10 +138,10 @@ if __name__ == "__main__":
     if vault_path:
         vault_data = build_vault_map()
         # Now you can use vault_data, e.g. print number of files
-
-        note_filter(
-            vault_map=vault_data,
-            url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
-        )
+        if vault_data is not None:
+            note_filter(
+                vault_map=vault_data,
+                url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
+            )
     else:
         logger.warning("OBSIDIAN_VAULT_PATH not set.")

@@ -1,6 +1,9 @@
 import os
 import logging
 
+
+from collections.abc import Sequence
+
 import ollama
 
 
@@ -10,7 +13,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def embedder(texts: list) -> list[list[float]]:
+def embedder(texts: list) -> list[Sequence[float]]:
     """
     Convert a list of text strings into embeddings using Ollama.
 
@@ -23,6 +26,9 @@ def embedder(texts: list) -> list[list[float]]:
 
     load_dotenv()
     model = os.getenv("EMBEDDING_MODEL")
+    if not model:
+        msg = "EMBEDDING_MODEL not set"
+        raise ValueError(msg)
     logger.info(
         f"Embedding with model '{model}'",
     )
@@ -50,4 +56,4 @@ def embedder(texts: list) -> list[list[float]]:
         logger.exception("Embedding failed")
         raise
     else:
-        return embeddings
+        return list(embeddings)
