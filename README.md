@@ -147,9 +147,10 @@ The project follows a strict phase‑based plan. Each phase must be fully workin
 - [x] Include tags, title, first 300 chars of content
 
 ### Phase 4 – Enrichment planner
-- [ ] Step 1: Topic extraction from transcript (LLM)
-- [ ] Step 2: Map topics to existing notes (LLM + vault map)
-- [ ] Produce JSON plan (updates, new notes, skipped)
+- [x] Step 1: Topic extraction from transcript (LLM)
+- [x] Step 2: Map topics to existing notes (LLM + vault map)
+- [ ] Produce JSON plan (updates, new notes, skipped) 
+  - Work in progress. Waiting for RAG implementation to filter relevent notes. For now the vault is too big, it's over the context window (especially with a small model). The prompts are not followed correctly. 
 
 ### Phase 4b – Plan execution with review
 - [ ] Print human‑readable plan, ask for confirmation
@@ -157,9 +158,9 @@ The project follows a strict phase‑based plan. Each phase must be fully workin
 - [ ] Update `sources` frontmatter
 
 ### Phase 5 – RAG foundation (chunker + embedder + ChromaDB)
-- [ ] Chunk markdown notes by heading
-- [ ] Embed chunks with `nomic-embed-text`
-- [ ] Store in ChromaDB with metadata
+- [x] Chunk markdown notes by heading
+- [x] Embed chunks with `nomic-embed-text`
+- [x] Store in ChromaDB with metadata
 
 ### Phase 6 – Vault watcher
 - [ ] Watch for file changes, re‑index automatically
