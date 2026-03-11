@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 import frontmatter
 
-from rag.embedder import embedder
+from src.rag.embedder import embedder
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:

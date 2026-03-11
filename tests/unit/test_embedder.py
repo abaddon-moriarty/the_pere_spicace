@@ -26,7 +26,10 @@ class TestEmbedder:
     @patch("src.rag.embedder.load_dotenv")
     @patch.dict("os.environ", {"EMBEDDING_MODEL": "test-model"})
     def test_embedder_with_empty_list(self, _mock_dotenv):
-        """Test embedder with empty text list returns early without calling ollama."""
+        """
+        Test embedder with empty text list
+        returns early without calling ollama.
+        """
         result = embedder([])
         assert result == []
 
@@ -44,7 +47,9 @@ class TestEmbedder:
     @patch.dict("os.environ", {"EMBEDDING_MODEL": "test-model"})
     @patch("src.rag.embedder.ollama.embed")
     def test_embedder_single_text(self, mock_embed, _mock_dotenv):
-        """Test embedder with single text input returns a list of one vector."""
+        """
+        Test embedder with single text input returns a list of one vector.
+        """
         mock_response = MagicMock()
         mock_response.embeddings = [[0.1, 0.2, 0.3]]
         mock_embed.return_value = mock_response
@@ -62,7 +67,9 @@ class TestEmbedder:
         mock_embed,
         _mock_dotenv,
     ):
-        """Test that the number of returned vectors matches the number of inputs."""
+        """
+        Test that the number of returned vectors matches the number of inputs.
+        """
         mock_response = MagicMock()
         mock_response.embeddings = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]
         mock_embed.return_value = mock_response

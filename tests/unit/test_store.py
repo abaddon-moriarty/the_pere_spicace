@@ -82,7 +82,9 @@ class TestVaultStoreIntegration(unittest.TestCase):
         self.assertGreater(len(results["ids"]), 0)
 
     def test_index_file_is_idempotent(self):
-        """Calling index_file twice on the same file does not duplicate chunks."""
+        """
+        Calling index_file twice on the same file does not duplicate chunks.
+        """
         chunks = [{"index": 0, "content": "chunk 1", "source": "test.txt"}]
         embeddings = [[0.1, 0.2]]
 

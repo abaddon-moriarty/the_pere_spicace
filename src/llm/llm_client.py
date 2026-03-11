@@ -12,7 +12,7 @@ import ollama
 
 from dotenv import load_dotenv
 
-from obsidian.vault_structure import note_filter, build_vault_map
+from src.obsidian.vault_structure import note_filter, build_vault_map
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
