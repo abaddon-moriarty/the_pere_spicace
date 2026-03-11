@@ -4,6 +4,7 @@ import logging
 
 from pathlib import Path
 
+import yaml
 import frontmatter
 
 from rag.embedder import embedder
@@ -50,6 +51,9 @@ def chunker(note_name: str) -> list[dict] | None:
         )
     except FileNotFoundError:
         logger.exception(f"File not found: {note_name}")
+        raise
+    except yaml.YAMLError:
+        logger.exception(f"Failed to parse frontmatter in {note_name}")
         raise
     except Exception:
         logger.exception("Could not chunk the text(s)")

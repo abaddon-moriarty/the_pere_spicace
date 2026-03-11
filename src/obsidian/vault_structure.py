@@ -84,7 +84,7 @@ def build_vault_map() -> None | dict:
     return vault_map
 
 
-def note_filter(vault_map: dict, _url: str) -> dict:
+def note_filter(vault_map: dict, url: str) -> dict:
     # Gets the vault map, the video url
     # removes any note that already contains the url as a source.
     # limits a tiny bit the length to process.
@@ -98,10 +98,10 @@ def note_filter(vault_map: dict, _url: str) -> dict:
         found = False
         if isinstance(sources, list):
             for item in sources:
-                if isinstance(item, str) and _url in item:
+                if isinstance(item, str) and url in item:
                     found = True
                     break
-        elif isinstance(sources, str) and _url in sources:
+        elif isinstance(sources, str) and url in sources:
             found = True
 
         if found:
@@ -117,7 +117,7 @@ def note_filter(vault_map: dict, _url: str) -> dict:
     return vault_map
 
 
-def path_validation(vault_mapping, path):
+def path_validation(vault_mapping):
     paths = vault_mapping["updates"]
     for note_path in paths:
         logger.debug(note_path)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
         note_filter(
             vault_map=vault_data,
-            _url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
+            url="https://www.youtube.com/watch?v=eDIj5LuIL4A&list=PLb49csYFtO2HAdNGChGzohFJGnJnXBOqd&index=2",
         )
     else:
         logger.warning("OBSIDIAN_VAULT_PATH not set.")

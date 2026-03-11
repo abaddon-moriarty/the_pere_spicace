@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.obsidian.vault_structure import build_vault_map
+from src.obsidian.vault_structure import note_filter, build_vault_map
 
 # ── Shared fixture ───────────────────────────────────────────────────────────
 
@@ -97,17 +97,17 @@ def test_build_vault_map_invalid_path(_, monkeypatch):
 
 
 @patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_skips_templates(
-    _,
-    temp_vault_dir,
-    monkeypatch,
-):
-    """Files inside a Templates directory must be excluded."""
+def test_note_filter_keeps_unrelated_notes(_, temp_vault_dir, monkeypatch):
+    """Notes whose sources don't contain the URL pass through unchanged."""
     monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
-
     vault_map = build_vault_map()
+    original_count = len(vault_map)
 
-    assert "Templates/template.md" not in vault_map
+    url = "https://not-in-any-note.com"
+
+    result = note_filter(vault_map, url)
+
+    assert len(result) == original_count
 
 
 @patch("src.obsidian.vault_structure.load_dotenv")
@@ -132,3 +132,18 @@ def test_build_vault_map_handles_bad_file(
 
     assert "bad.md" not in vault_map
     assert "Error processing" in caplog.text
+
+
+@patch("src.obsidian.vault_structure.load_dotenv")
+def test_note_filter_removes_already_enriched(_, temp_vault_dir, monkeypatch):
+    """Notes whose sources contain the URL are removed from the vault map."""
+    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
+    vault_map = build_vault_map()
+
+    # note.md has sources: https://example.com in the fixture
+    url = "https://example.com"
+
+    result = note_filter(vault_map, url)
+
+    assert "note.md" not in result
+    assert "sub/other.md" in result  # no sources → kept

@@ -181,11 +181,10 @@ class LLMClient:
 
         logger.info(f"{self.model_name} is extracting topics...")
         response = ollama.chat(model=self.model_name, messages=messages)
-        # logger.debug(response)
-        parsed_response = self._parse_json_response(
+        logger.debug(str(response)[:500])
+        return self._parse_json_response(
             response["message"]["content"],
         )
-        return parsed_response
 
     def generate_summary(self, transcript: str) -> str:
         """Generate a summary from the transcript."""
@@ -242,10 +241,11 @@ class LLMClient:
         raw_content = response["message"]["content"]
         logger.info(f"Raw mapping response: {raw_content}")
 
-
         return self._parse_json_response(raw_content)
 
-    def mapping_review(vault_mapping, propositions):
+    def mapping_review(self, vault_mapping, propositions):
+        vault_mapping = vault_mapping
+        propositions = propositions
         return
 
 
