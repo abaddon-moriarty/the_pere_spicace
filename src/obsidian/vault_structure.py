@@ -55,26 +55,9 @@ def build_vault_map() -> None | dict:
                     full_path = Path(root, file)
                     rel_path = str(full_path.relative_to(vault_path))
                     try:
-                        with Path(full_path).open(encoding="utf-8") as f:
-                            post = frontmatter.load(f)
-                            metadata = post.metadata
-                            content = post.content
-
-                        title = metadata.get("title", "")
-                        tags = metadata.get("tags", [])
-                        last_enriched = metadata.get("last_enriched", "")
-                        sources = metadata.get("sources", "")
-                        domain = metadata.get("domain", "")
-                        summary = content[:300]
-
-                        vault_map[rel_path] = {
-                            "title": title,
-                            "tags": tags,
-                            "last_enriched": last_enriched,
-                            "domain": domain,
-                            "sources": sources,
-                            "summary": summary,
-                        }
+                        vault_map[rel_path] = extract_metadata(
+                            full_path=full_path
+                        )
                     except Exception:
                         logger.exception(f"Error processing {full_path}")
                         continue
@@ -87,6 +70,22 @@ def build_vault_map() -> None | dict:
 
     logger.info(f"Found {len(vault_map)} markdown files.")
     return vault_map
+
+
+def extract_metadata(full_path: Path) -> dict:
+    with Path(full_path).open(encoding="utf-8") as f:
+        post = frontmatter.load(f)
+        metadata = post.metadata
+        content = post.content
+
+    return {
+        "title": metadata.get("title", ""),
+        "tags": metadata.get("tags", []),
+        "last_enriched": metadata.get("last_enriched", ""),
+        "domain": metadata.get("domain", ""),
+        "sources": metadata.get("sources", ""),
+        "summary": content[:300],
+    }
 
 
 def note_filter(vault_map: dict, url: str) -> dict:

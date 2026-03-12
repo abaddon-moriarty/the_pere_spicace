@@ -1,12 +1,17 @@
+import json
 import logging
+
+
+from pathlib import Path
 
 import chromadb
 
 from src.rag.chunker import chunker
 from src.rag.embedder import embedder
+from src.obsidian.vault_structure import extract_metadata
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class VaultStore:
@@ -33,6 +38,7 @@ class VaultStore:
         filepath: str,
         chunks: list[dict],
         embeddings: list[list[float]],
+        file_metadata: dict | None = None,
     ):
         """
         Before inserting, delete all existing chunks for this file
@@ -47,7 +53,32 @@ class VaultStore:
         # Prepare data for upsert
         ids = [f"{filepath}_chunk_{chunk['index']}" for chunk in chunks]
         documents = [chunk["content"] for chunk in chunks]
-        metadatas = [{"source": chunk["source"]} for chunk in chunks]
+        metadatas = []
+        for chunk in chunks:
+            # base metadata: source
+            chunk_meta = {"source": chunk["source"]}
+            # merge file-level metacouldata if provided
+            if file_metadata:
+                # Convert any list values (like tags) to a comma‑separated string
+                meta_copy = file_metadata.copy()
+                for key, value in meta_copy.items():
+                    if isinstance(value, list):
+                        if all(isinstance(v, str) for v in value):
+                            meta_copy[key] = ", ".join(
+                                value
+                            )  # tags: ["a", "b"] → "a, b"
+                        else:
+                            meta_copy[key] = json.dumps(
+                                value
+                            )  # sources: [{...}] → JSON string
+                    elif isinstance(value, dict):
+                        meta_copy[key] = json.dumps(value)
+                    elif value is None:
+                        meta_copy[key] = (
+                            ""  # ChromaDB accepts None but empty string is safer
+                        )
+                chunk_meta.update(meta_copy)
+            metadatas.append(chunk_meta)
 
         logger.debug(f"Upserting {len(ids)} chunks into collection")
         self.collection.upsert(
@@ -102,15 +133,21 @@ class VaultStore:
 
 if __name__ == "__main__":
     logger.info("Running VaultStore in standalone mode")
-    chunks = chunker(note_name="./src/rag/test.txt")
+
+    file_path = Path("./src/rag/test.txt")
+    chunks = chunker(note_name=str(file_path))
 
     store = VaultStore(persist_path="./chroma_db")
     if chunks:
         embeddings = embedder([chunk["content"] for chunk in chunks])
+
+        metadata = extract_metadata(file_path)
+        logger.info(f"Extracted metadata from {file_path}: \n{metadata}")
         store.index_file(
             filepath="./src/rag/test.txt",
             chunks=chunks,
             embeddings=embeddings,
+            metadata=metadata,
         )
 
     if embeddings:
