@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: Ruff](https://img.shields.io/badge/codestyle-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Coverage](https://img.shields.io/badge/coverage-68%25-yellowgreen)]()
 
 ## Overview
 
@@ -13,40 +14,42 @@
 - Caches transcripts in a local SQLite database
 - Extracts video metadata (title, channel, etc.)
 - Builds a map of your Obsidian vault for context‑aware enrichment
-- (Planned) Generates summaries, key concepts, and quizzes via local LLMs (Ollama/LM Studio)
+- **Chunks, embeds, and indexes your vault** for semantic search (RAG)
+- **Watches your vault** for changes and automatically re‑indexes files
+- **Answers questions** from your notes using a RAG pipeline (local LLM)
+- (Planned) Generates summaries, key concepts, and quizzes
 - (Planned) Updates your Obsidian notes with new content while preserving your own writing
+
 Everything runs locally—no API keys, no data sent to the cloud.
 
 ## Current Status
-| Component               | Status   | Notes                                                                 |
-|-------------------------|--------|----------------------------------------------------------------------|
-| YouTube transcript fetch | ✅     | Uses @kevinwatt/yt-dlp-mcp with retry logic and cookie fallback       |
-| SQLite cache            | ✅     | Stores transcripts and metadata                                       |
-| Vault structure analyzer | ✅     | `build_vault_map()` scans Obsidian vault and extracts frontmatter     |
-| Cookie extraction       | ⚠️     | Reads Brave cookies (encrypted, may need keyring access)              |
-| LLM client              | ❌     | Needs rewrite (Phase 0)                                               |
-| Enrichment planner      | ❌     | Will use vault map + LLM to decide note updates                       |
-| Obsidian note writer    | ❌     | Will create/update notes via Obsidian MCP                             |
+| Component                     | Status   | Notes                                                                 |
+|-------------------------------|----------|----------------------------------------------------------------------|
+| YouTube transcript fetch      | ✅       | Uses @kevinwatt/yt-dlp-mcp with retry logic and cookie fallback      |
+| SQLite cache                  | ✅       | Stores transcripts and metadata                                      |
+| Vault structure analyzer      | ✅       | `build_vault_map()` scans Obsidian vault and extracts frontmatter    |
+| Cookie extraction             | ⚠️       | Reads Brave cookies (encrypted, may need keyring access)             |
+| LLM client                    | ✅       | Simple wrapper for Ollama chat & embedding (rewritten)               |
+| Topic extraction              | ✅       | Uses LLM to extract key concepts from transcript                     |
+| Concept → note mapping        | ✅       | Maps topics to existing vault notes (LLM + vault map)                |
+| Enrichment planner            | 🚧       | Produces JSON plan (updates, new notes, skipped) – WIP, awaiting RAG filtering |
+| RAG foundation                | ✅       | Chunking (by headings), embedding (`nomic-embed-text`), ChromaDB store |
+| Vault watcher                 | ✅       | `watchdog`‑based, debounced re‑indexing on file changes              |
+| RAG retriever                 | ✅       | Answers questions from vault content using local LLM                 |
+| Obsidian note writer          | ❌       | Will create/update notes via Obsidian MCP                            |
+| Interactive quiz generation   | ❌       | Planned                                                              |
 
-See the Roadmap below for what’s coming next.
-
-
-
-
-
-
-### Features
+## Features
 - **Privacy-First**: Everything runs locally—no data sent to external APIs
 - **Smart Summarization**: Uses local LLMs (Ollama/LM Studio) to create concise summaries
 - **Obsidian Integration**: Automatically creates or updates well-formatted notes in your vault
 - **Interactive Quizzes**: Generates questions to test your understanding
-<!-- - **MCP Integration**: Uses Model Context Protocol for extensible tool integration
-- **Test Suite**: Comprehensive tests for reliable operation -->
+- **Semantic Search**: Ask questions about your vault and get answers grounded in your notes (RAG)
+- **Auto‑indexing**: The vault watcher keeps your vector database in sync as you edit notes
 
 ## Quick Start
 
 ### Prerequisites
-
 - **Python 3.9+** and **pip**
 - **Node.js** (for `npx`, used by the MCP server)
 - **Obsidian** (for note-taking)
@@ -54,167 +57,115 @@ See the Roadmap below for what’s coming next.
 - **Brave/Firefox/Chrome** (for cookies, if you need to bypass YouTube rate limits)
 
 ### Installation
-
 1. **Clone the repository**
-```bash
-git clone https://github.com/abaddon-moriarty/the_pere_spicace.git
-cd the_pere_spicace
-```
+   ```bash
+   git clone https://github.com/abaddon-moriarty/the_pere_spicace.git
+   cd the_pere_spicace
+   ```
+
 2. **Create and activate a virtual environment**
-```bash
-python -m venv {env-name}
-source {env-name}/bin/activate # On Fedora
-# {env-name}\Scripts\activate #On Windows: 
-```
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Linux/macOS
+   # .\venv\Scripts\activate   # On Windows
+   ```
+
 3. **Install the package**
-```bash
-pip install -e .
-```
+   ```bash
+   pip install -e .
+   ```
 
-4. **Install the required MCP server** (it will be fetched automatically via `npx`, but you can test it with):
-```bash
-npx -y @kevinwatt/yt-dlp-mcp
-```
+4. **Install the required MCP server** (it will be fetched automatically via `npx`):
+   ```bash
+   npx -y @kevinwatt/yt-dlp-mcp
+   ```
+
 5. **Set up environment variables**
-Copy `.env.example` to `.env` and edit:
-```bash
-# Required
-OBSIDIAN_VAULT_PATH=/path/to/your/obsidian/vault
+   Copy `.env.example` to `.env` and edit:
+   ```bash
+   # Required
+   OBSIDIAN_VAULT_PATH=/path/to/your/obsidian/vault
+   OLLAMA_MODEL=llama3.2          # or your preferred model
+   EMBEDDING_MODEL=nomic-embed-text
 
-# Optional (for cookie‑based YouTube access)
-YTDLP_COOKIES_FROM_BROWSER=brave  # or firefox, chrome
-```
+   # Optional (for cookie‑based YouTube access)
+   YTDLP_COOKIES_FROM_BROWSER=brave  # or firefox, chrome
+   ```
 
-6. **Pull an LLM model** (for later phases)
-```bash
-ollama pull llama3.2
-```
+6. **Pull the embedding model** (used by the RAG pipeline)
+  ```bash
+  ollama pull llama3.2
+  ```
 
 ### Basic Usage
-
 ```bash
 # Process a YouTube video
 python main.py --url "https://www.youtube.com/watch?v=EXAMPLE"
 
-# Or use the interactive mode
+# Or run the interactive mode
 python main.py
 # Then enter the URL when prompted
 ```
 
-### Core Components
-1. **MCP Client**: Connects to YouTube transcript server
-2. **LLM Integration**: Summarizes content using Ollama or LM Studio
-3. **Obsidian Writer**: Creates structured markdown notes
-4. **Quiz Generator**: Produces retention-testing questions
-5. **CLI Interface**: User-friendly command-line interaction
+### Query your vault (RAG)
+```bash
+python -m src.rag.retriever --question "What is RAG?"
+```
+
+The retriever will return an answer based on your indexed notes.
 
 ## Project Structure
 ```
 youtube-learning-pipeline/
 ├── src/
-│   ├── mcp/                    # MCP client implementation
-│   ├── llm/                    # LLM integration (Ollama/LM Studio)
-│   ├── obsidian/              # Obsidian vault operations
-│   ├── processing/            # Summary and quiz generation
-│   ├── cli/                   # Command-line interface
-│   └── utils/                 # Shared utilities
-├── tests/                     # Test suite
-├── docker/                    # Docker configuration
-├── scripts/                   # Utility scripts
-├── .github/workflows/        # CI/CD pipelines
-└── config/                   # Configuration files
+│   ├── database/               # SQLite cache
+│   ├── llm/                    # LLM client (Ollama)
+│   ├── obsidian/                # Vault map, note filtering, indexer, watcher
+│   ├── rag/                     # Chunker, embedder, ChromaDB store, retriever
+│   ├── transcription_client/    # YouTube transcript fetcher
+│   └── utils/                   # Cookie extraction, etc.
+├── tests/                       # Comprehensive test suite (91 tests, 68% coverage)
+├── scripts/                      # Utility scripts (run_tests.py, etc.)
+├── .github/workflows/            # CI/CD pipelines
+└── pyproject.toml                # Project configuration and dependencies
 ```
-
 
 ## Roadmap (Development Phases)
 The project follows a strict phase‑based plan. Each phase must be fully working before moving to the next.
 
-### Phase 0 – Fix LLM client
-- [ ] Rewrite `LLMClient` as a simple wrapper around Ollama (`chat`, `embed`)
-- [ ] Test with a hardcoded transcript → returns readable summary/quiz
+- [x] **Phase 0 – Fix LLM client**  
+  Simple wrapper for Ollama (`chat`, `embed`); tested with hardcoded transcript.
 
-### Phase 1 – Stabilize YouTube client (✅ done)
-- [x] Switch `@kevinwatt/yt-dlp-mcp` with correct tool names
-- [x] Add cookie support (`YTDLP_COOKIES_FROM_BROWSER`)
-- [x] Save transcripts to SQLite
+- [x] **Phase 1 – Stabilize YouTube client**  
+  Switch to `@kevinwatt/yt-dlp-mcp`; add cookie support; SQLite cache.
 
-### Phase 2 – Design note format (✅ done)
-- [x] Add `sources` frontmatter to existing notes
-- [ ] Define template with `## Summary`, `## Key Concepts`, `## Quiz`
+- [x] **Phase 2 – Design note format**  
+  Add `sources` frontmatter; define template with `## Summary`, `## Key Concepts`, `## Quiz`.
 
-### Phase 3 – Vault structure awareness (✅ done)
-- [x] Write `build_vault_map()` to scan vault and extract metadata
-- [x] Include tags, title, first 300 chars of content
+- [x] **Phase 3 – Vault structure awareness**  
+  `build_vault_map()` scans vault; extracts title, tags, summary.
 
-### Phase 4 – Enrichment planner
-- [x] Step 1: Topic extraction from transcript (LLM)
-- [x] Step 2: Map topics to existing notes (LLM + vault map)
-- [ ] Produce JSON plan (updates, new notes, skipped) 
-  - Work in progress. Waiting for RAG implementation to filter relevent notes. For now the vault is too big, it's over the context window (especially with a small model). The prompts are not followed correctly. 
+- **Phase 4 – Enrichment planner**  
+  - [x] Step 1: Topic extraction from transcript (LLM)  
+  - [x] Step 2: Map topics to existing notes (LLM + vault map)  
+  - [ ] Step 3: Produce JSON plan (updates, new notes, skipped) – **WIP**, awaiting RAG to filter relevant notes.
 
-### Phase 4b – Plan execution with review
-- [ ] Print human‑readable plan, ask for confirmation
-- [ ] Append content wrapped in attribution comments
-- [ ] Update `sources` frontmatter
+- [x] **Phase 5 – RAG foundation**  
+  - [x] Chunk markdown notes by heading  
+  - [x] Embed chunks with `nomic-embed-text`  
+  - [x] Store in ChromaDB with metadata  
+  - [x] Delete/re‑index files
 
-### Phase 5 – RAG foundation (chunker + embedder + ChromaDB)
-- [x] Chunk markdown notes by heading
-- [x] Embed chunks with `nomic-embed-text`
-- [x] Store in ChromaDB with metadata
+- [x] **Phase 6 – Vault watcher**  
+  Watch for file changes; debounced re‑indexing with `watchdog`.
 
-### Phase 6 – Vault watcher
-- [ ] Watch for file changes, re‑index automatically
+- [x] **Phase 7 – RAG retriever**  
+  Answer questions from vault content using retrieved chunks + LLM.
 
-### Phase 7 – RAG retriever
-- [ ] Answer questions from vault content
-    
-
-### Phase 8 – Query interfaces
-- [ ] CLI with rich formatting
-- [ ] Gradio web UI
-- [ ] Obsidian plugin (TypeScript)
-
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file:
-
-```env
-# LLM Configuration
-LLM_TYPE=ollama                 # ollama or lmstudio
-OLLAMA_MODEL=llama3.2          # Model name for Ollama
-LMSTUDIO_ENDPOINT=http://localhost:1234/v1
-
-# Obsidian Configuration
-OBSIDIAN_VAULT_PATH=/path/to/your/vault
-<!-- OBSIDIAN_TEMPLATE_PATH=./config/templates/note_template.md --> Not covered yet
-
-# MCP Configuration
-MCP_SERVER_TYPE=docker
-
-# Application Settings
-TEMP_DIR=./temp
-LOG_LEVEL=INFO
-```
-
-### LLM Setup
-
-#### Option 1: Ollama
-```bash
-# Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
-
-
-# Pull a model
-ollama pull model
-```
-
-#### Option 2: LM Studio
-1. Download and install [LM Studio](https://lmstudio.ai/)
-2. Download a model (e.g., Mistral, Llama 2)
-3. Start the local server (default: http://localhost:1234)
+- **Phase 8 – Query interfaces**  
+  - CLI with rich formatting  
+  - Gradio web UI (planned)  
+  - Obsidian plugin (TypeScript) (planned)
 
 ## Testing
 
@@ -222,7 +173,6 @@ ollama pull model
 # Quick test run
 python scripts/run_tests.py
 
-# Lint test
 # Specific test suites
 python scripts/run_tests.py --type unit --coverage
 python scripts/run_tests.py --type integration -v
@@ -230,7 +180,7 @@ python scripts/run_tests.py --type integration -v
 # With linting and type checking
 python scripts/run_tests.py --lint --type-check --coverage -v
 
-# To resolve the fixable issues
+# Auto‑fix lint issues
 ruff check --fix
 ```
 
@@ -244,14 +194,15 @@ pip install -e ".[dev]"
 # Set up pre-commit hooks
 pre-commit install
 
-# Run tests on change
-pytest-watch  # Optional: pip install pytest-watch
+# Run tests on change (optional)
+pip install pytest-watch
+pytest-watch
 ```
 
 ### Code Style
-- **Formatter**: Ruff (replaces Black)
-- **Linter**: Ruff (replaces Flake8)
-- **Import Sorter**: Ruff (replaces isort)
+- **Formatter**: Ruff
+- **Linter**: Ruff
+- **Import Sorter**: Ruff
 - **Type Checking**: mypy
 
 ### Branch Strategy
@@ -306,24 +257,24 @@ make setup
 ### Common Issues
 
 #### "Unable to connect to MCP server"
-- Ensure the MCP server is running: `uvx mcp-youtube-transcript --help`
-- Check Docker is running if using Docker mode
+- Ensure `npx` is available and the MCP server can be fetched.
+- Check internet connection.
 
 #### "LLM not responding"
-- Verify Ollama/LM Studio is running
+- Verify Ollama/LM Studio is running.
 - Check model is downloaded: `ollama list`
-- Confirm API endpoint is correct
+- Confirm API endpoint is correct.
 
 #### "Obsidian vault not found"
-- Verify the path in `.env` is correct
-- Check write permissions to the vault directory
+- Verify the path in `.env` is absolute and exists.
+- Check write permissions.
 
 ### Debug Mode
-```bash
-# Enable verbose logging
-LOG_LEVEL=DEBUG python main.py --url "YOUTUBE_URL"
+  ```bash
+  # Enable verbose logging
+  LOG_LEVEL=DEBUG python main.py --url "YOUTUBE_URL"
 
-```
+  ```
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
