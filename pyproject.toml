@@ -33,7 +33,6 @@ asyncio_mode = "auto"
 explicit_package_bases = true
 mypy_path = ["."]
 namespace_packages = true
-exclude = ["src/rag/store.py"]
 
 [[tool.mypy.overrides]]
 module = [

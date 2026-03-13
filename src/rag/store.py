@@ -1,12 +1,18 @@
+import json
 import logging
+
+
+from pathlib import Path
+from collections.abc import Sequence
 
 import chromadb
 
 from src.rag.chunker import chunker
 from src.rag.embedder import embedder
+from src.obsidian.vault_structure import extract_metadata
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class VaultStore:
@@ -32,7 +38,8 @@ class VaultStore:
         self,
         filepath: str,
         chunks: list[dict],
-        embeddings: list[list[float]],
+        embeddings: Sequence[Sequence[float]],
+        file_metadata: dict | None = None,
     ):
         """
         Before inserting, delete all existing chunks for this file
@@ -47,7 +54,29 @@ class VaultStore:
         # Prepare data for upsert
         ids = [f"{filepath}_chunk_{chunk['index']}" for chunk in chunks]
         documents = [chunk["content"] for chunk in chunks]
-        metadatas = [{"source": chunk["source"]} for chunk in chunks]
+        metadatas = []
+        for chunk in chunks:
+            # base metadata: source
+            chunk_meta = {"source": chunk["source"]}
+            # merge file-level metacouldata if provided
+            if file_metadata:
+                meta_copy = file_metadata.copy()
+                for key, value in meta_copy.items():
+                    if isinstance(value, list):
+                        if all(isinstance(v, str) for v in value):
+                            meta_copy[key] = ", ".join(
+                                value,
+                            )  # tags: ["a", "b"] → "a, b"
+                        else:
+                            meta_copy[key] = json.dumps(
+                                value,
+                            )
+                    elif isinstance(value, dict):
+                        meta_copy[key] = json.dumps(value)
+                    elif value is None:
+                        meta_copy[key] = ""
+                chunk_meta.update(meta_copy)
+            metadatas.append(chunk_meta)
 
         logger.debug(f"Upserting {len(ids)} chunks into collection")
         self.collection.upsert(
@@ -67,7 +96,7 @@ class VaultStore:
 
     def query(
         self,
-        query_embedding: list[float],
+        query_embedding: Sequence[float],
         n_results: int,
     ) -> list[dict]:
         """
@@ -102,22 +131,30 @@ class VaultStore:
 
 if __name__ == "__main__":
     logger.info("Running VaultStore in standalone mode")
-    chunks = chunker(note_name="./src/rag/test.txt")
+    url = "./Is RAG Still Needed? Choosing the Best Approach for LLMs.txt"
 
+    file_path = Path(url)
+    chunks = chunker(note_name=str(file_path))
+    embeddings = []
     store = VaultStore(persist_path="./chroma_db")
     if chunks:
         embeddings = embedder([chunk["content"] for chunk in chunks])
+
+        metadata = extract_metadata(file_path)
+        logger.info(f"Extracted metadata from {file_path}: \n{metadata}")
         store.index_file(
             filepath="./src/rag/test.txt",
             chunks=chunks,
             embeddings=embeddings,
+            file_metadata=metadata,
         )
 
     if embeddings:
         sample_query = embeddings[0]  # use first chunk's embedding as query
-        results = store.query(query_embedding=sample_query, n_results=3)
+        results = store.query(query_embedding=sample_query, n_results=10)
         for res in results:
             logger.info(
-                f"Result: {res['document'][:100]}... \
-                (distance: {res['distance']})",
+                f"Source file: {res['metadata']}\
+                \nResult: {res['document']}... \
+                \n(distance: {res['distance']})",
             )
