@@ -84,7 +84,7 @@ class VaultHandler(FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    path = settings.vault_path
+    path = settings.obsidian_vault_path
 
     if path is None:
         logger.warning(

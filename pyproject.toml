@@ -6,8 +6,14 @@ authors = [{name = "abaddon-moriarty", email = "munaund@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    # Add your actual runtime dependencies here
-    # If mcp needs to be installed from a specific source, handle it differently
+    "chromadb>=0.5.0",
+    "ollama>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "python-frontmatter>=1.0.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.66.0",
+    "watchdog>=4.0.0",
+    "mcp",
 ]
 
 [project.optional-dependencies]

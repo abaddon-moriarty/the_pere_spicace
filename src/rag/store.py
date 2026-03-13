@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class VaultStore:
-    def __init__(self, persist_path: str):
+    def __init__(self, persist_path):
         """
         Creates or opens a persistent ChromaDB client.
         Always use PersistentClient, never in-memory.

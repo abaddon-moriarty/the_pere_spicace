@@ -27,7 +27,8 @@ def _mock_settings(
         "src.config.settings.chroma_persist_path",
         Path(chroma),
     )
-    # Reset the module-level VaultStore singleton so each test gets a fresh mock
+    # Reset the module-level VaultStore singleton
+    # so each test gets a fresh mock
     monkeypatch.setattr("src.rag.retriever._store", None)
 
 
@@ -123,7 +124,7 @@ def test_ask_builds_context_from_chunks(monkeypatch):
         "user [source: /vault/A.md]\nChunk A content. test question",
     )
 
-    def fake_chat(*args, **kwargs):
+    def fake_chat(**kwargs):
         captured_messages["msgs"] = kwargs.get("messages", [])
         return fake_response
 

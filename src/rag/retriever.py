@@ -33,7 +33,7 @@ def _load_prompt(name: str) -> str:
         return f.read()
 
 
-def ask(question: str, n_chunks: int = 5, stream: bool = False) -> str:
+def ask(question: str, n_chunks: int = 5, *, streaming: bool = False) -> str:
     model_name = settings.ollama_model
     prompts_dir = settings.prompts_dir
 
@@ -69,22 +69,33 @@ def ask(question: str, n_chunks: int = 5, stream: bool = False) -> str:
         question=question,
     )
 
-    # 5. Call LLM
+    # 5. Build messages (system only if present)
+    messages = []
+    if system_prompt is not None:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": user_prompt})
+
+    # 6. Call LLM
+    if streaming:
+        # Streaming mode: accumulate chunks into a string
+        stream = ollama.chat(
+            model=model_name,
+            messages=messages,
+            stream=True,
+        )
+        content = ""
+        for chunk in stream:
+            content += chunk["message"]["content"]
+        return content
     response = ollama.chat(
         model=model_name,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        stream=stream,
+        messages=messages,
+        stream=False,
     )
-
     return response["message"]["content"]
 
 
 if __name__ == "__main__":
-    import sys
-
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
     logging.basicConfig(level=logging.INFO)
