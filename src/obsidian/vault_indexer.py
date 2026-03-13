@@ -138,7 +138,7 @@ def index_vault(*, force=False):
         )
 
         # Update tracker only after successful indexing
-        tracker[str(file_path)] = time.time().timestamp()
+        tracker[str(file_path)] = time.time()
         save_tracker(tracker)
 
     logger.info("Vault indexing complete.")
