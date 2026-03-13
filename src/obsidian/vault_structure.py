@@ -6,8 +6,7 @@ from pathlib import Path
 
 import frontmatter
 
-
-from dotenv import load_dotenv
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -39,8 +38,7 @@ def build_vault_map() -> None | dict:
     logger.info("Loading environment variables")
 
     try:
-        load_dotenv()
-        vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+        vault_path = settings.obsidian_vault_path
         if vault_path is None:
             logger.warning(
                 "OBSIDIAN_VAULT_PATH not set - vault features disabled.",
@@ -132,8 +130,7 @@ def path_validation(vault_mapping):
 
 if __name__ == "__main__":
     logger.info(msg="Starting the vault map")
-    load_dotenv()
-    vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+    vault_path = settings.obsidian_vault_path
     if vault_path:
         vault_data = build_vault_map()
         # Now you can use vault_data, e.g. print number of files

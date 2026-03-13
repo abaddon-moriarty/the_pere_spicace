@@ -37,9 +37,12 @@ namespace_packages = true
 [[tool.mypy.overrides]]
 module = [
     "frontmatter", 
+    "google",
     "google.*",
     "chromadb",
     "chromadb.*",
     ]
+follow_imports = "skip"
+
 ignore_missing_imports = true
 

@@ -8,8 +8,8 @@ import argparse
 from pathlib import Path
 
 from tqdm import tqdm
-from dotenv import load_dotenv
 
+from src.config import settings
 from src.rag.store import VaultStore
 from src.rag.chunker import chunker
 from src.rag.embedder import embedder
@@ -47,8 +47,7 @@ def save_tracker(tracker):
 
 
 def index_vault(*, force=False):
-    load_dotenv()
-    vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+    vault_path = settings.obsidian_vault_path
 
     if vault_path is None:
         logger.warning(

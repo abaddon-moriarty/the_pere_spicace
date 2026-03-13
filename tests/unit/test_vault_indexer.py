@@ -98,16 +98,18 @@ def test_save_and_reload_tracker(tmp_path):
 
 
 def test_index_vault_no_env(monkeypatch):
-    monkeypatch.delenv("OBSIDIAN_VAULT_PATH", raising=False)
-    with patch("src.obsidian.vault_indexer.load_dotenv"):
-        # Should return early without raising
-        index_vault()
+    """When vault path is None, index_vault returns early without raising."""
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", None)
+    index_vault()  # must not raise
 
 
 def test_index_vault_nonexistent_path(monkeypatch, tmp_path):
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(tmp_path / "does_not_exist"))
-    with patch("src.obsidian.vault_indexer.load_dotenv"):
-        index_vault()  # Should log error and return
+    """When vault path does not exist, index_vault logs error and returns."""
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        tmp_path / "does_not_exist",
+    )
+    index_vault()  # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +123,7 @@ def test_index_vault_skips_already_indexed_files(
     tmp_path,
 ):
     """Files whose mtime is older than last_indexed timestamp are skipped."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
 
     # Pre-populate tracker with a future timestamp so all files look indexed
     future_ts = time.time() + 9999
@@ -134,7 +136,6 @@ def test_index_vault_skips_already_indexed_files(
     tracker_file.write_text(json.dumps(tracker_data))
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore") as mock_store,
         patch("src.obsidian.vault_indexer.chunker") as mock_chunker,
@@ -150,7 +151,7 @@ def test_index_vault_skips_templates_directory(
     tmp_path,
 ):
     """Files inside a Templates/ directory are never indexed."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
     tracker_file = tmp_path / "tracker.json"
     tracker_file.write_text("{}")
 
@@ -158,10 +159,9 @@ def test_index_vault_skips_templates_directory(
 
     def fake_chunker(path):
         indexed_paths.append(path)
-        return  # skip embedding step
+        return
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore"),
         patch("src.obsidian.vault_indexer.chunker", side_effect=fake_chunker),
@@ -180,7 +180,7 @@ def test_index_vault_force_reindexes_all(monkeypatch, temp_vault, tmp_path):
     """
     force=True re-indexes even files that appear up to date in the tracker.
     """
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
 
     future_ts = time.time() + 9999
     tracker_data = {
@@ -198,7 +198,6 @@ def test_index_vault_force_reindexes_all(monkeypatch, temp_vault, tmp_path):
         return
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore"),
         patch("src.obsidian.vault_indexer.chunker", side_effect=fake_chunker),
@@ -219,7 +218,7 @@ def test_index_vault_chunker_exception_continues(
     tmp_path,
 ):
     """A chunker exception on one file does not abort the rest."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
     tracker_file = tmp_path / "tracker.json"
     tracker_file.write_text("{}")
 
@@ -230,10 +229,9 @@ def test_index_vault_chunker_exception_continues(
         if call_count["n"] == 1:
             msg = "disk error"
             raise RuntimeError(msg)
-        return  # second file: no chunks
+        return
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore"),
         patch("src.obsidian.vault_indexer.chunker", side_effect=flaky_chunker),
@@ -249,11 +247,16 @@ def test_index_vault_embedding_exception_continues(
     tmp_path,
 ):
     """An embedder exception on one file does not abort the rest."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
     tracker_file = tmp_path / "tracker.json"
     tracker_file.write_text("{}")
 
-    fake_chunk = {"content": "text", "index": 0, "source": "x", "heading": "h"}
+    fake_chunk = {
+        "content": "text",
+        "index": 0,
+        "source": "x",
+        "heading": "h",
+    }
 
     embed_calls = {"n": 0}
 
@@ -265,7 +268,6 @@ def test_index_vault_embedding_exception_continues(
         return []
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore"),
         patch("src.obsidian.vault_indexer.chunker", return_value=[fake_chunk]),
@@ -294,14 +296,18 @@ def test_index_vault_updates_tracker_after_success(
     tmp_path,
 ):
     """Tracker is written with a new timestamp after a successful index."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault))
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", temp_vault)
     tracker_file = tmp_path / "tracker.json"
     tracker_file.write_text("{}")
 
-    fake_chunk = {"content": "text", "index": 0, "source": "x", "heading": "h"}
+    fake_chunk = {
+        "content": "text",
+        "index": 0,
+        "source": "x",
+        "heading": "h",
+    }
 
     with (
-        patch("src.obsidian.vault_indexer.load_dotenv"),
         patch("src.obsidian.vault_indexer.TRACKER_FILE", tracker_file),
         patch("src.obsidian.vault_indexer.VaultStore"),
         patch("src.obsidian.vault_indexer.chunker", return_value=[fake_chunk]),
@@ -318,11 +324,7 @@ def test_index_vault_updates_tracker_after_success(
         index_vault()
         after = time.time()
 
-    saved = (
-        load_tracker.__wrapped__(tracker_file)
-        if hasattr(load_tracker, "__wrapped__")
-        else json.loads(tracker_file.read_text())
-    )
+    saved = json.loads(tracker_file.read_text())
     assert len(saved) == 2
     for ts in saved.values():
         assert before <= ts <= after + 1

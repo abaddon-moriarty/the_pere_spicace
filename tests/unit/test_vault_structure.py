@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from src.obsidian.vault_structure import note_filter, build_vault_map
@@ -43,15 +41,12 @@ def temp_vault_dir(tmp_path):
 # ── Tests ────────────────────────────────────────────────────────────────────
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_success(
-    _,
-    temp_vault_dir,
-    monkeypatch,
-):
+def test_build_vault_map_success(temp_vault_dir, monkeypatch):
     """Test building vault map with a controlled temp vault."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
-
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        temp_vault_dir,
+    )
     vault_map = build_vault_map()
 
     assert vault_map is not None
@@ -69,37 +64,42 @@ def test_build_vault_map_success(
     assert note["summary"] == "This is the content of the test note."
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_no_env(_, monkeypatch):
+def test_build_vault_map_no_env(monkeypatch):
     """
     When OBSIDIAN_VAULT_PATH is not set, os.walk(None) raises TypeError,
     caught by the outer except — returns None.
     """
-    monkeypatch.delenv("OBSIDIAN_VAULT_PATH", raising=False)
+    monkeypatch.setattr("src.config.settings.obsidian_vault_path", None)
 
     vault_map = build_vault_map()
 
     assert vault_map is None
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_invalid_path(_, monkeypatch):
+def test_build_vault_map_invalid_path(monkeypatch):
     """
     When the vault path does not exist, os.walk silently yields nothing
     and the function returns an empty dict (not None).
     """
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", "/nonexistent/path")
+    from pathlib import Path
 
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        Path("/nonexistent/path"),
+    )
     vault_map = build_vault_map()
 
     # os.walk on a missing path returns an empty iterator — no exception raised
     assert vault_map == {}
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_note_filter_keeps_unrelated_notes(_, temp_vault_dir, monkeypatch):
+def test_note_filter_keeps_unrelated_notes(temp_vault_dir, monkeypatch):
     """Notes whose sources don't contain the URL pass through unchanged."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        temp_vault_dir,
+    )
+
     vault_map = build_vault_map()
     original_count = len(vault_map)
 
@@ -110,15 +110,12 @@ def test_note_filter_keeps_unrelated_notes(_, temp_vault_dir, monkeypatch):
     assert len(result) == original_count
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_build_vault_map_handles_bad_file(
-    _,
-    temp_vault_dir,
-    monkeypatch,
-    caplog,
-):
+def test_build_vault_map_handles_bad_file(temp_vault_dir, monkeypatch, caplog):
     """A file that raises during parsing is skipped and the error is logged."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        temp_vault_dir,
+    )
 
     bad_file = temp_vault_dir / "bad.md"
     bad_file.write_bytes(
@@ -134,10 +131,12 @@ def test_build_vault_map_handles_bad_file(
     assert "Error processing" in caplog.text
 
 
-@patch("src.obsidian.vault_structure.load_dotenv")
-def test_note_filter_removes_already_enriched(_, temp_vault_dir, monkeypatch):
+def test_note_filter_removes_already_enriched(temp_vault_dir, monkeypatch):
     """Notes whose sources contain the URL are removed from the vault map."""
-    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(temp_vault_dir))
+    monkeypatch.setattr(
+        "src.config.settings.obsidian_vault_path",
+        temp_vault_dir,
+    )
     vault_map = build_vault_map()
 
     # note.md has sources: https://example.com in the fixture

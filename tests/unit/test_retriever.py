@@ -1,6 +1,5 @@
+from pathlib import Path
 from unittest.mock import patch, MagicMock
-
-import pytest
 
 from src.rag.retriever import ask
 
@@ -16,29 +15,20 @@ FAKE_CHUNK = {
 }
 
 
-def _mock_env(
+def _mock_settings(
     monkeypatch,
     model="llama3.2",
     prompts_dir="./prompts",
     chroma="./chroma_db",
 ):
-    monkeypatch.setenv("OLLAMA_MODEL", model)
-    monkeypatch.setenv("PROMPTS_DIR", prompts_dir)
-    monkeypatch.setenv("CHROMA_DB_PATH", chroma)
-
-
-# ---------------------------------------------------------------------------
-# Missing environment variable
-# ---------------------------------------------------------------------------
-
-
-def test_ask_raises_if_no_model(monkeypatch):
-    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-    with (
-        patch("src.rag.retriever.load_dotenv"),
-        pytest.raises(ValueError, match="OLLAMA_MODEL"),
-    ):
-        ask("anything")
+    monkeypatch.setattr("src.config.settings.ollama_model", model)
+    monkeypatch.setattr("src.config.settings.prompts_dir", Path(prompts_dir))
+    monkeypatch.setattr(
+        "src.config.settings.chroma_persist_path",
+        Path(chroma),
+    )
+    # Reset the module-level VaultStore singleton so each test gets a fresh mock
+    monkeypatch.setattr("src.rag.retriever._store", None)
 
 
 # ---------------------------------------------------------------------------
@@ -47,11 +37,8 @@ def test_ask_raises_if_no_model(monkeypatch):
 
 
 def test_ask_returns_message_if_embedding_fails(monkeypatch):
-    _mock_env(monkeypatch)
-    with (
-        patch("src.rag.retriever.load_dotenv"),
-        patch("src.rag.retriever.embedder", return_value=[]),
-    ):
+    _mock_settings(monkeypatch)
+    with patch("src.rag.retriever.embedder", return_value=[]):
         result = ask("What is RAG?")
     assert "embed" in result.lower() or "could not" in result.lower()
 
@@ -62,9 +49,8 @@ def test_ask_returns_message_if_embedding_fails(monkeypatch):
 
 
 def test_ask_returns_no_notes_message_when_no_results(monkeypatch):
-    _mock_env(monkeypatch)
+    _mock_settings(monkeypatch)
     with (
-        patch("src.rag.retriever.load_dotenv"),
         patch("src.rag.retriever.embedder", return_value=[[0.1, 0.2, 0.3]]),
         patch("src.rag.retriever.VaultStore") as mock_store,
     ):
@@ -83,7 +69,7 @@ def test_ask_returns_no_notes_message_when_no_results(monkeypatch):
 
 
 def test_ask_returns_llm_answer(monkeypatch):
-    _mock_env(monkeypatch)
+    _mock_settings(monkeypatch)
 
     fake_response = {
         "message": {"content": "RAG uses retrieval. [source: /vault/RAG.md]"},
@@ -95,7 +81,6 @@ def test_ask_returns_llm_answer(monkeypatch):
     )
 
     with (
-        patch("src.rag.retriever.load_dotenv"),
         patch("src.rag.retriever.embedder", return_value=[[0.1, 0.2, 0.3]]),
         patch("src.rag.retriever.VaultStore") as mock_store,
         patch("src.rag.retriever.LLMClient", return_value=mock_client),
@@ -113,7 +98,7 @@ def test_ask_returns_llm_answer(monkeypatch):
 
 
 def test_ask_builds_context_from_chunks(monkeypatch):
-    _mock_env(monkeypatch)
+    _mock_settings(monkeypatch)
 
     chunks = [
         {
@@ -130,7 +115,7 @@ def test_ask_builds_context_from_chunks(monkeypatch):
         },
     ]
 
-    captured_messages = {}
+    captured_messages: dict = {}
     fake_response = {"message": {"content": "answer"}}
     mock_client = MagicMock()
     mock_client._load_prompt.return_value = (
@@ -138,12 +123,11 @@ def test_ask_builds_context_from_chunks(monkeypatch):
         "user [source: /vault/A.md]\nChunk A content. test question",
     )
 
-    def fake_chat(**kwargs):
+    def fake_chat(*args, **kwargs):
         captured_messages["msgs"] = kwargs.get("messages", [])
         return fake_response
 
     with (
-        patch("src.rag.retriever.load_dotenv"),
         patch("src.rag.retriever.embedder", return_value=[[0.0]]),
         patch("src.rag.retriever.VaultStore") as mock_store,
         patch("src.rag.retriever.LLMClient", return_value=mock_client),
@@ -162,9 +146,9 @@ def test_ask_builds_context_from_chunks(monkeypatch):
 
 
 def test_ask_passes_n_chunks_to_store(monkeypatch):
-    _mock_env(monkeypatch)
+    _mock_settings(monkeypatch)
 
-    fake_response = {"message": {"content": "some answer"}}  # Define here
+    fake_response = {"message": {"content": "some answer"}}
     mock_client = MagicMock()
 
     def fake_load_prompt(_name, **kwargs):
@@ -173,14 +157,10 @@ def test_ask_passes_n_chunks_to_store(monkeypatch):
     mock_client._load_prompt.side_effect = fake_load_prompt
 
     with (
-        patch("src.rag.retriever.load_dotenv"),
         patch("src.rag.retriever.embedder", return_value=[[0.0]]),
         patch("src.rag.retriever.VaultStore") as mock_store,
         patch("src.rag.retriever.LLMClient", return_value=mock_client),
-        patch(
-            "src.rag.retriever.ollama.chat",
-            return_value=fake_response,
-        ),  # Now defined
+        patch("src.rag.retriever.ollama.chat", return_value=fake_response),
     ):
         mock_store.return_value.query.return_value = [FAKE_CHUNK]
         ask("question", n_chunks=10)

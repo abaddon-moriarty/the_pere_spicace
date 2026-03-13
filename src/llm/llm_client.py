@@ -1,4 +1,3 @@
-import os
 import re
 import sys
 import json
@@ -9,9 +8,7 @@ from pathlib import Path
 
 import ollama
 
-
-from dotenv import load_dotenv
-
+from src.config import settings
 from src.obsidian.vault_structure import note_filter, build_vault_map
 
 logger = logging.getLogger(__name__)
@@ -254,14 +251,13 @@ class LLMClient:
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    model = os.getenv("OLLAMA_MODEL")
-    prompts_dir_str = os.getenv("PROMPTS_DIR")
-    if not model or not prompts_dir_str:
+    model = settings.ollama_model
+    prompts_dir = settings.prompts_dir
+    if not model or not prompts_dir:
         logger.error("OLLAMA_MODEL or PROMPTS_DIR not set in .env")
         sys.exit(1)
 
-    prompts_dir = Path(prompts_dir_str)
+    prompts_dir = Path(prompts_dir)
     client = LLMClient(model, prompts_dir)
     logger.info(f"LLM client initialized with model: {model}")
 

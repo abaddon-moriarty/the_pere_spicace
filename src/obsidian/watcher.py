@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 import threading
@@ -6,10 +5,10 @@ import threading
 
 from pathlib import Path
 
-from dotenv import load_dotenv
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+from src.config import settings
 from src.rag.store import VaultStore
 from src.rag.chunker import chunker
 from src.rag.embedder import embedder
@@ -85,8 +84,7 @@ class VaultHandler(FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    path = os.getenv("OBSIDIAN_VAULT_PATH")
+    path = settings.vault_path
 
     if path is None:
         logger.warning(

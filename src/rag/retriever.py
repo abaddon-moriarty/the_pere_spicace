@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 
@@ -7,9 +6,7 @@ from pathlib import Path
 
 import ollama
 
-
-from dotenv import load_dotenv
-
+from src.config import settings
 from src.rag.store import VaultStore
 from src.rag.embedder import embedder
 from src.llm.llm_client import LLMClient
@@ -18,6 +15,17 @@ logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
+_store: VaultStore | None = None
+
+
+def _get_store() -> VaultStore:
+    global _store
+    if _store is None:
+        _store = VaultStore(
+            persist_path=settings.chroma_persist_path,
+        )
+    return _store
+
 
 def _load_prompt(name: str) -> str:
     path = PROMPTS_DIR / name
@@ -25,11 +33,9 @@ def _load_prompt(name: str) -> str:
         return f.read()
 
 
-def ask(question: str, n_chunks: int = 5) -> str:
-    load_dotenv()
-    model_name = os.getenv("OLLAMA_MODEL")
-    prompts_dir = Path(os.getenv("PROMPTS_DIR", "./prompts"))
-    chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+def ask(question: str, n_chunks: int = 5, stream: bool = False) -> str:
+    model_name = settings.ollama_model
+    prompts_dir = settings.prompts_dir
 
     if model_name is None:
         msg = "OLLAMA_MODEL environment variable not set"
@@ -42,7 +48,7 @@ def ask(question: str, n_chunks: int = 5) -> str:
     question_vector = question_embeddings[0]
 
     # 2. Query ChromaDB
-    store = VaultStore(persist_path=chroma_path)
+    store = _get_store()
     results = store.query(query_embedding=question_vector, n_results=n_chunks)
 
     if not results:
@@ -70,6 +76,7 @@ def ask(question: str, n_chunks: int = 5) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
+        stream=stream,
     )
 
     return response["message"]["content"]

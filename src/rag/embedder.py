@@ -1,4 +1,3 @@
-import os
 import logging
 
 
@@ -6,8 +5,7 @@ from collections.abc import Sequence
 
 import ollama
 
-
-from dotenv import load_dotenv
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +22,7 @@ def embedder(texts: list) -> list[Sequence[float]]:
         list[list[float]]: List of embedding vectors, one per input text.
     """
 
-    load_dotenv()
-    model = os.getenv("EMBEDDING_MODEL")
+    model = settings.ollama_embed_model
     if not model:
         msg = "EMBEDDING_MODEL not set"
         raise ValueError(msg)
