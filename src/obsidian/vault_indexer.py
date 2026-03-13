@@ -85,7 +85,7 @@ def index_vault(force=False):
         current_mtime = file_path.stat().st_mtime
         key = str(file_path)
         last_indexed = tracker.get(
-            key
+            key,
         )  # float timestamp of when we last indexed
         if force or last_indexed is None or last_indexed < current_mtime:
             logger.debug(

@@ -65,11 +65,11 @@ class VaultStore:
                     if isinstance(value, list):
                         if all(isinstance(v, str) for v in value):
                             meta_copy[key] = ", ".join(
-                                value
+                                value,
                             )  # tags: ["a", "b"] → "a, b"
                         else:
                             meta_copy[key] = json.dumps(
-                                value
+                                value,
                             )  # sources: [{...}] → JSON string
                     elif isinstance(value, dict):
                         meta_copy[key] = json.dumps(value)
@@ -133,10 +133,11 @@ class VaultStore:
 
 if __name__ == "__main__":
     logger.info("Running VaultStore in standalone mode")
+    url = "./Is RAG Still Needed? Choosing the Best Approach for LLMs.txt"
 
-    file_path = Path("./src/rag/test.txt")
+    file_path = Path(url)
     chunks = chunker(note_name=str(file_path))
-
+    embeddings = []
     store = VaultStore(persist_path="./chroma_db")
     if chunks:
         embeddings = embedder([chunk["content"] for chunk in chunks])
@@ -147,14 +148,15 @@ if __name__ == "__main__":
             filepath="./src/rag/test.txt",
             chunks=chunks,
             embeddings=embeddings,
-            metadata=metadata,
+            file_metadata=metadata,
         )
 
     if embeddings:
         sample_query = embeddings[0]  # use first chunk's embedding as query
-        results = store.query(query_embedding=sample_query, n_results=3)
+        results = store.query(query_embedding=sample_query, n_results=10)
         for res in results:
             logger.info(
-                f"Result: {res['document'][:100]}... \
-                (distance: {res['distance']})",
+                f"Source file: {res['metadata']}\
+                \nResult: {res['document']}... \
+                \n(distance: {res['distance']})",
             )

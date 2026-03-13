@@ -1,0 +1,9 @@
+Here are the relevant excerpts from my notes:
+
+{context}
+
+---
+
+Question: {question}
+
+Answer strictly from the excerpts above. Cite each source note you draw from using [source: filename]. If the answer is not in the excerpts, say "I don't have notes on that yet."
