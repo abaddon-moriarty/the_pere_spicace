@@ -56,7 +56,7 @@ def build_vault_map() -> None | dict:
                     rel_path = str(full_path.relative_to(vault_path))
                     try:
                         vault_map[rel_path] = extract_metadata(
-                            full_path=full_path
+                            full_path=full_path,
                         )
                     except Exception:
                         logger.exception(f"Error processing {full_path}")

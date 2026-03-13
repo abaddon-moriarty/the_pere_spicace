@@ -1,9 +1,3 @@
-"""
-
-Build the prompt — assemble a string that contains: a system instruction telling the LLM to answer only from the provided context, then each retrieved chunk (with its source filename as a label), then the question. Format matters here — experiment with this.
-Call Ollama — send the prompt to llama3.2 via ollama.chat(). Return the response text.
-"""
-
 import os
 import sys
 import logging
@@ -33,9 +27,13 @@ def _load_prompt(name: str) -> str:
 
 def ask(question: str, n_chunks: int = 5) -> str:
     load_dotenv()
-    model = os.getenv("OLLAMA_MODEL")
+    model_name = os.getenv("OLLAMA_MODEL")
     prompts_dir = Path(os.getenv("PROMPTS_DIR", "./prompts"))
     chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+
+    if model_name is None:
+        msg = "OLLAMA_MODEL environment variable not set"
+        raise ValueError(msg)
 
     # 1. Embed the question
     question_embeddings = embedder([question])
@@ -58,7 +56,7 @@ def ask(question: str, n_chunks: int = 5) -> str:
 
     # 4. Build prompt
 
-    client = LLMClient(model_name=model, prompt_dir=prompts_dir)
+    client = LLMClient(model_name=model_name, prompt_dir=prompts_dir)
     system_prompt, user_prompt = client._load_prompt(
         "retriever",
         context=context,
@@ -67,7 +65,7 @@ def ask(question: str, n_chunks: int = 5) -> str:
 
     # 5. Call LLM
     response = ollama.chat(
-        model=model,
+        model=model_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -85,14 +83,15 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     test_questions = [
-        "What are the main differences between RAG and long context approaches?",
+        "What are the main differences between:\
+            \nRAG and long context approache?",
         "How does median blur handle salt-and-pepper noise in OpenCV?",
         "What is the capital of Mars?",
     ]
 
     for q in test_questions:
-        print(f"\n{'=' * 60}")
-        print(f"Q: {q}")
-        print(f"{'=' * 60}")
+        logger.info(f"\n{'=' * 60}")
+        logger.info(f"Q: {q}")
+        logger.info(f"{'=' * 60}")
         answer = ask(q)
-        print(f"A: {answer}")
+        logger.info(f"A: {answer}")

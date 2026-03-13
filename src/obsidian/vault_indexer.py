@@ -1,11 +1,11 @@
 import os
 import json
+import time
 import logging
 import argparse
 
 
 from pathlib import Path
-from datetime import datetime
 
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -27,7 +27,7 @@ TRACKER_FILE = Path(".vault_index_tracker.json")
 def load_tracker():
     if TRACKER_FILE.exists():
         try:
-            with open(TRACKER_FILE) as f:
+            with Path.open(TRACKER_FILE) as f:
                 content = f.read().strip()
                 if not content:
                     logger.debug("Tracker file is empty, starting fresh.")
@@ -42,17 +42,17 @@ def load_tracker():
 
 
 def save_tracker(tracker):
-    with open(TRACKER_FILE, "w") as f:
+    with Path.open(TRACKER_FILE, "w") as f:
         json.dump(tracker, f, indent=2)
 
 
-def index_vault(force=False):
+def index_vault(*, force=False):
     load_dotenv()
     vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
 
     if vault_path is None:
         logger.warning(
-            "OBSIDIAN_VAULT_PATH not set – vault indexing disabled.",
+            "OBSIDIAN_VAULT_PATH not set: vault indexing disabled.",
         )
         return
     vault_path = Path(vault_path)
@@ -89,7 +89,9 @@ def index_vault(force=False):
         )  # float timestamp of when we last indexed
         if force or last_indexed is None or last_indexed < current_mtime:
             logger.debug(
-                f"Will index: {key} | stored={last_indexed} | current={current_mtime}",
+                f"Will index: {key}\
+                \nstored={last_indexed}\
+                \ncurrent={current_mtime}",
             )
             files_to_index.append(file_path)
         else:
@@ -136,7 +138,7 @@ def index_vault(force=False):
         )
 
         # Update tracker only after successful indexing
-        tracker[str(file_path)] = datetime.now().timestamp()
+        tracker[str(file_path)] = time.time().timestamp()
         save_tracker(tracker)
 
     logger.info("Vault indexing complete.")

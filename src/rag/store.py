@@ -3,6 +3,7 @@ import logging
 
 
 from pathlib import Path
+from collections.abc import Sequence
 
 import chromadb
 
@@ -37,7 +38,7 @@ class VaultStore:
         self,
         filepath: str,
         chunks: list[dict],
-        embeddings: list[list[float]],
+        embeddings: Sequence[Sequence[float]],
         file_metadata: dict | None = None,
     ):
         """
@@ -59,7 +60,6 @@ class VaultStore:
             chunk_meta = {"source": chunk["source"]}
             # merge file-level metacouldata if provided
             if file_metadata:
-                # Convert any list values (like tags) to a comma‑separated string
                 meta_copy = file_metadata.copy()
                 for key, value in meta_copy.items():
                     if isinstance(value, list):
@@ -70,13 +70,11 @@ class VaultStore:
                         else:
                             meta_copy[key] = json.dumps(
                                 value,
-                            )  # sources: [{...}] → JSON string
+                            )
                     elif isinstance(value, dict):
                         meta_copy[key] = json.dumps(value)
                     elif value is None:
-                        meta_copy[key] = (
-                            ""  # ChromaDB accepts None but empty string is safer
-                        )
+                        meta_copy[key] = ""
                 chunk_meta.update(meta_copy)
             metadatas.append(chunk_meta)
 
@@ -98,7 +96,7 @@ class VaultStore:
 
     def query(
         self,
-        query_embedding: list[float],
+        query_embedding: Sequence[float],
         n_results: int,
     ) -> list[dict]:
         """

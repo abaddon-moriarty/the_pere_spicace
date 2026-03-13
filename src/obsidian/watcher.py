@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     if path is None:
         logger.warning(
-            "OBSIDIAN_VAULT_PATH not set – vault indexing disabled.",
+            "OBSIDIAN_VAULT_PATH not set: vault indexing disabled.",
         )
         sys.exit(1)
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     observer = Observer()
 
-    observer.schedule(handler, vault_path, recursive=True)
+    observer.schedule(handler, str(vault_path), recursive=True)
 
     logger.info(f"Watching vault at {vault_path}...")
 
